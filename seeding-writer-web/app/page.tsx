@@ -661,9 +661,14 @@ ${structureAnalysis}
       )}
 
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">种草内容仿写助手</h1>
-        <p className="text-sm text-gray-500 mt-1">四步完成种草带货内容仿写 · 写出让人想买的内容</p>
+      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">种草内容仿写助手</h1>
+          <p className="text-sm text-gray-500 mt-1">四步完成种草带货内容仿写 · 写出让人想买的内容</p>
+        </div>
+        <a href="/" className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">
+          ← 返回工具箱
+        </a>
       </header>
 
       {/* Step indicator */}
