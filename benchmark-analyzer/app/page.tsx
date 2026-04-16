@@ -261,9 +261,14 @@ export default function Home() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">对标分析助手</h1>
-            <p className="text-sm text-gray-500 mt-1">系统化拆解对标账号，输出人格档案与内容规划</p>
+          <div className="flex items-center gap-4">
+            <a href="/" className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">
+              ← 返回工具箱
+            </a>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">对标分析助手</h1>
+              <p className="text-sm text-gray-500 mt-1">系统化拆解对标账号，输出人格档案与内容规划</p>
+            </div>
           </div>
           {step === 'result' && (
             <div className="flex items-center gap-2">
