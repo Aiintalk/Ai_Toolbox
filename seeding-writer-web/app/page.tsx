@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 
+const BASE = '/seeding-writer'
+
 interface Persona { name: string; soul: string; contentPlan: string; references: string[] }
 interface VideoInfo { title: string; diggCount: number; awemeId: string; isSubtitled: boolean; playUrl: string }
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
@@ -71,7 +73,7 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch('/api/personas').then(r => r.json()).then(d => {
+    fetch(`${BASE}/api/personas`).then(r => r.json()).then(d => {
       setPersonas(d.personas || [])
     })
   }, [])
@@ -90,7 +92,7 @@ export default function Home() {
   }
 
   async function reloadPersonas() {
-    const d = await fetch('/api/personas').then(r => r.json())
+    const d = await fetch(`${BASE}/api/personas`).then(r => r.json())
     const list = d.personas || []
     setPersonas(list)
     if (selectedPersona) {
@@ -103,7 +105,7 @@ export default function Home() {
     if (!selectedPersona || !refTitle.trim() || !refContent.trim()) return
     setLoading('保存素材...')
     try {
-      const res = await fetch('/api/personas/references', {
+      const res = await fetch(`${BASE}/api/personas/references`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,7 +157,7 @@ export default function Home() {
       for (const file of pendingFiles) {
         formData.append('file', file)
       }
-      const res = await fetch('/api/parse-product', {
+      const res = await fetch(`${BASE}/api/parse-product`, {
         method: 'POST',
         body: formData,
       })
@@ -302,7 +304,7 @@ export default function Home() {
   }
 
   async function streamChat(messages: { role: string; content: string }[], systemPrompt: string): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt }),
@@ -324,7 +326,7 @@ export default function Home() {
     systemPrompt: string,
     onUpdate: (text: string) => void
   ): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt }),
@@ -356,7 +358,7 @@ export default function Home() {
     setTranscript('')
     setTranscriptConfirmed(false)
     try {
-      const res = await fetch('/api/fetch-video', {
+      const res = await fetch(`${BASE}/api/fetch-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareUrl: shareUrl.trim() }),
@@ -368,7 +370,7 @@ export default function Home() {
 
       // Auto-transcribe
       setLoading('上传视频并提交转录...')
-      const tRes = await fetch('/api/transcribe/upload', {
+      const tRes = await fetch(`${BASE}/api/transcribe/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playUrl: data.playUrl }),
@@ -382,7 +384,7 @@ export default function Home() {
         await new Promise(r => setTimeout(r, 5000))
         attempts++
         setLoading(`转录中，请稍候...（已等待 ${attempts * 5} 秒）`)
-        const pRes = await fetch('/api/transcribe/poll', {
+        const pRes = await fetch(`${BASE}/api/transcribe/poll`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId }),
@@ -661,9 +663,16 @@ ${structureAnalysis}
       )}
 
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">种草内容仿写助手</h1>
-        <p className="text-sm text-gray-500 mt-1">四步完成种草带货内容仿写 · 写出让人想买的内容</p>
+      <header className="bg-white border-b px-6 py-4 flex items-center gap-3">
+        <a href="/" className="text-gray-400 hover:text-gray-600 transition-colors" title="返回首页">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+        </a>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">种草内容仿写助手</h1>
+          <p className="text-sm text-gray-500 mt-1">四步完成种草带货内容仿写 · 写出让人想买的内容</p>
+        </div>
       </header>
 
       {/* Step indicator */}

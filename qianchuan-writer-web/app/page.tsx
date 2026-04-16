@@ -642,9 +642,16 @@ ${productDesc}
       )}
 
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">千川脚本仿写助手</h1>
-        <p className="text-sm text-gray-500 mt-1">四步完成千川投流素材仿写 · 爆款开头 + 卖点拼合</p>
+      <header className="bg-white border-b px-6 py-4 flex items-center gap-3">
+        <a href="/" className="text-gray-400 hover:text-gray-600 transition-colors" title="返回首页">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+        </a>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">千川脚本仿写助手</h1>
+          <p className="text-sm text-gray-500 mt-1">四步完成千川投流素材仿写 · 爆款开头 + 卖点拼合</p>
+        </div>
       </header>
 
       {/* Step indicator */}

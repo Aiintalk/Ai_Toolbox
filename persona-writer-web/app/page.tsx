@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 
+const BASE = '/persona-writer'
+
 interface Persona { name: string; soul: string; contentPlan: string; references: string[] }
 interface VideoInfo { title: string; diggCount: number; awemeId: string; isSubtitled: boolean; playUrl: string }
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
@@ -45,7 +47,7 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch('/api/personas').then(r => r.json()).then(d => {
+    fetch(`${BASE}/api/personas`).then(r => r.json()).then(d => {
       setPersonas(d.personas || [])
     })
   }, [])
@@ -61,7 +63,7 @@ export default function Home() {
 
   // Reload personas data (after adding/deleting references)
   async function reloadPersonas() {
-    const d = await fetch('/api/personas').then(r => r.json())
+    const d = await fetch(`${BASE}/api/personas`).then(r => r.json())
     const list = d.personas || []
     setPersonas(list)
     if (selectedPersona) {
@@ -75,7 +77,7 @@ export default function Home() {
     if (!selectedPersona || !refTitle.trim() || !refContent.trim()) return
     setLoading('保存素材...')
     try {
-      const res = await fetch('/api/personas/references', {
+      const res = await fetch(`${BASE}/api/personas/references`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,7 +108,7 @@ export default function Home() {
     if (!selectedPersona) return
     // We need to get the filename - fetch the directory listing
     try {
-      const res = await fetch('/api/personas/references', {
+      const res = await fetch(`${BASE}/api/personas/references`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +130,7 @@ export default function Home() {
   }
 
   async function streamChat(messages: { role: string; content: string }[], systemPrompt: string, model?: string): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt, model }),
@@ -151,7 +153,7 @@ export default function Home() {
     onUpdate: (text: string) => void,
     model?: string
   ): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt, model }),
@@ -185,7 +187,7 @@ export default function Home() {
     setOpeningEval('')
     setOpeningConfirmed(null)
     try {
-      const res = await fetch('/api/fetch-video', {
+      const res = await fetch(`${BASE}/api/fetch-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareUrl: shareUrl.trim() }),
@@ -197,7 +199,7 @@ export default function Home() {
 
       // Auto-transcribe
       setLoading('下载视频并提交转录（约30秒）...')
-      const tRes = await fetch('/api/transcribe/upload', {
+      const tRes = await fetch(`${BASE}/api/transcribe/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playUrl: data.playUrl }),
@@ -211,7 +213,7 @@ export default function Home() {
         await new Promise(r => setTimeout(r, 5000))
         attempts++
         setLoading(`转录中，请稍候...（已等待 ${attempts * 5} 秒）`)
-        const pRes = await fetch('/api/transcribe/poll', {
+        const pRes = await fetch(`${BASE}/api/transcribe/poll`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId }),
@@ -449,9 +451,16 @@ ${structureAnalysis}
       )}
 
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">人设内容仿写助手</h1>
-        <p className="text-sm text-gray-500 mt-1">三步完成人设内容仿写</p>
+      <header className="bg-white border-b px-6 py-4 flex items-center gap-3">
+        <a href="/" className="text-gray-400 hover:text-gray-600 transition-colors" title="返回首页">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+        </a>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">人设内容仿写助手</h1>
+          <p className="text-sm text-gray-500 mt-1">三步完成人设内容仿写</p>
+        </div>
       </header>
 
       {/* Step indicator */}
@@ -688,7 +697,7 @@ ${structureAnalysis}
                           建议换一条点赞更高的对标。
                           <button className="ml-2 underline font-medium" onClick={() => {
                             setLoading('下载视频并提交转录（约30秒）...')
-                            fetch('/api/transcribe/upload', {
+                            fetch(`${BASE}/api/transcribe/upload`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ playUrl: videoInfo.playUrl }),
@@ -699,7 +708,7 @@ ${structureAnalysis}
                                 await new Promise(r => setTimeout(r, 5000))
                                 attempts++
                                 setLoading(`转录中...（${attempts * 5}秒）`)
-                                const pRes = await fetch('/api/transcribe/poll', {
+                                const pRes = await fetch(`${BASE}/api/transcribe/poll`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ taskId }),
