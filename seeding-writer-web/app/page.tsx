@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 
+const BASE = '/seeding-writer'
+
 interface Persona { name: string; soul: string; contentPlan: string; references: string[] }
 interface VideoInfo { title: string; diggCount: number; awemeId: string; isSubtitled: boolean; playUrl: string }
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
@@ -67,11 +69,10 @@ export default function Home() {
   const [spLoading, setSpLoading] = useState(false)
   const [spApplied, setSpApplied] = useState(false)
   const spChatEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch('/api/personas').then(r => r.json()).then(d => {
+    fetch(`${BASE}/api/personas`).then(r => r.json()).then(d => {
       setPersonas(d.personas || [])
     })
   }, [])
@@ -90,7 +91,7 @@ export default function Home() {
   }
 
   async function reloadPersonas() {
-    const d = await fetch('/api/personas').then(r => r.json())
+    const d = await fetch(`${BASE}/api/personas`).then(r => r.json())
     const list = d.personas || []
     setPersonas(list)
     if (selectedPersona) {
@@ -103,7 +104,7 @@ export default function Home() {
     if (!selectedPersona || !refTitle.trim() || !refContent.trim()) return
     setLoading('保存素材...')
     try {
-      const res = await fetch('/api/personas/references', {
+      const res = await fetch(`${BASE}/api/personas/references`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,11 +135,17 @@ export default function Home() {
     setSelectedPersona(persona)
   }
 
-  async function handleUploadProductPdf(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    setPendingFiles(prev => [...prev, ...Array.from(files)])
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  function openProductFilePicker() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.txt,.md,.docx,.xlsx,.xls,.pptx'
+    input.multiple = true
+    input.onchange = () => {
+      const files = input.files
+      if (!files || files.length === 0) return
+      setPendingFiles(prev => [...prev, ...Array.from(files)])
+    }
+    input.click()
   }
 
   function handleRemovePendingFile(index: number) {
@@ -155,7 +162,7 @@ export default function Home() {
       for (const file of pendingFiles) {
         formData.append('file', file)
       }
-      const res = await fetch('/api/parse-product', {
+      const res = await fetch(`${BASE}/api/parse-product`, {
         method: 'POST',
         body: formData,
       })
@@ -302,7 +309,7 @@ export default function Home() {
   }
 
   async function streamChat(messages: { role: string; content: string }[], systemPrompt: string): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt }),
@@ -324,7 +331,7 @@ export default function Home() {
     systemPrompt: string,
     onUpdate: (text: string) => void
   ): Promise<string> {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt }),
@@ -356,7 +363,7 @@ export default function Home() {
     setTranscript('')
     setTranscriptConfirmed(false)
     try {
-      const res = await fetch('/api/fetch-video', {
+      const res = await fetch(`${BASE}/api/fetch-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareUrl: shareUrl.trim() }),
@@ -368,7 +375,7 @@ export default function Home() {
 
       // Auto-transcribe
       setLoading('上传视频并提交转录...')
-      const tRes = await fetch('/api/transcribe/upload', {
+      const tRes = await fetch(`${BASE}/api/transcribe/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playUrl: data.playUrl }),
@@ -382,7 +389,7 @@ export default function Home() {
         await new Promise(r => setTimeout(r, 5000))
         attempts++
         setLoading(`转录中，请稍候...（已等待 ${attempts * 5} 秒）`)
-        const pRes = await fetch('/api/transcribe/poll', {
+        const pRes = await fetch(`${BASE}/api/transcribe/poll`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId }),
@@ -856,18 +863,10 @@ ${structureAnalysis}
                   <p className="text-sm text-gray-500 mt-1">产品信息越详细，AI 写出来的种草内容越精准。带 * 的为必填。</p>
                 </div>
                 <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx"
-                    multiple
-                    className="hidden"
-                    onChange={handleUploadProductPdf}
-                  />
                   <button
                     className="bg-white border-2 border-orange-500 text-orange-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-50 disabled:opacity-50"
                     disabled={uploadingPdf}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={openProductFilePicker}
                   >
                     {uploadingPdf ? '解析中...' : '+ 添加产品文档'}
                   </button>
@@ -882,7 +881,7 @@ ${structureAnalysis}
                     <div className="flex gap-2">
                       <button
                         className="text-xs text-gray-500 hover:text-gray-700"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={openProductFilePicker}
                       >
                         继续添加
                       </button>
