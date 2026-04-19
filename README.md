@@ -82,23 +82,88 @@ persona-writer-web/
 
 本项目采用 **GitHub + 分支开发 + AI 执行 + PR 审核** 的协作方式。
 
-在开始任何开发任务前，AI **必须先阅读本 README**，了解整个项目的基本情况和模块结构；随后再继续阅读根目录 `GIT_WORKFLOW.md`，按其中的标准流程完成 Git 检查、更新主分支、创建任务分支、提交、推送和分支清理等动作。如果无法完成GIT创建分支已经准备开发环境请反馈。
+在开始任何开发任务前，AI **必须先阅读本 README**，了解整个项目的基本情况和模块结构；随后再继续阅读根目录 `GIT_WORKFLOW.md`，按其中的标准流程完成 Git 检查、更新主分支、创建任务分支、提交、推送和分支清理等动作。如果无法完成 Git 创建分支以及准备开发环境，请及时反馈。
 
 ### 3. 文档阅读顺序
 
 AI 在开始开发前，请按以下顺序阅读：
 
-1. `README.md`
-   - 了解整个项目的基本情况、模块结构和协作入口
-2. `GIT_WORKFLOW.md`
-   - 了解并执行 Git 标准流程
+1. `README.md` — 了解整个项目的基本情况、模块结构和协作入口
+2. `GIT_WORKFLOW.md` — 了解并执行 Git 标准流程
 
-### 4. 开发启动要求
+### 4. 开发启动流程（AI 执行步骤）
 
-在执行任何功能开发前，不要直接修改代码，必须先根据 `GIT_WORKFLOW.md` 完成以下动作：
+在执行任何功能开发前，不要直接修改代码，必须按以下步骤完成环境准备：
 
-1. 检查本地 Git 状态
-2. 切换到 `main`
-3. 拉取 GitHub 最新代码
-4. 创建并切换到本次任务分支。
+**第一步：检查开发环境**
+
+依次运行以下命令，逐项确认环境是否就绪：
+
+```bash
+# 1. 检查 Git 是否安装
+git --version
+
+# 2. 检查 Git 用户信息是否配置
+git config user.name
+git config user.email
+
+# 3. 检查当前仓库远程地址是否正确
+git remote -v
+
+# 4. 检查 GitHub CLI 是否安装
+gh --version
+
+# 5. 检查 GitHub CLI 是否已登录
+gh auth status
+
+# 6. 检查 Node.js 是否安装
+node --version
+```
+
+**判断规则：**
+
+| 检查项 | 异常情况 | Windows 处理方式 | Mac 处理方式 |
+|--------|----------|------------------|--------------|
+| `git --version` 报错 | Git 未安装 | 下载安装 [git-scm.com](https://git-scm.com) | `brew install git` |
+| `user.name` / `user.email` 为空 | 提交信息无署名 | `git config --global user.name "名字"` | 同左 |
+| `git remote -v` 地址不是本项目 | 仓库目录错误 | 切换到正确的项目目录 | 同左 |
+| `gh --version` 报错 | GitHub CLI 未安装 | `winget install GitHub.cli` | `brew install gh` |
+| `gh auth status` 未登录 | 无法推送和创建 PR | `gh auth login` | 同左 |
+| `node --version` 报错 | Node.js 未安装 | 下载安装 [nodejs.org](https://nodejs.org) | `brew install node` |
+
+所有检查项均正常后，再继续执行第二步。
+
+**第二步：切换到 main 并拉取最新代码**
+
+```bash
+git checkout main
+git pull origin main
+```
+
+确保本地 `main` 分支与远程保持一致，避免基于旧代码开发。
+
+**第三步：创建任务分支**
+
+按以下规则命名并创建分支：
+
+- 格式：`姓名缩写月份日期`
+- 示例：`yh0419`
+
+```bash
+git checkout -b 姓名缩写月份日期
+```
+
+**第四步：确认并告知开发人员**
+
+完成以上步骤后，AI 需要向开发人员输出以下确认信息：
+
+```
+✅ 开发环境已准备完成
+
+- 当前分支：xxx（根据实际分支名填写）
+- 基于：main 最新代码
+- 分支已创建完成，可以开发啦！
+```
+
+如果任何步骤出现错误，请停止操作并将错误信息反馈给开发人员。
 
