@@ -118,9 +118,9 @@
     .card-base .card-icon { background: #f3f0ff; }
     .card-base .card-tag { background: #f3f0ff; color: #7c3aed; }
 
-    /* 数据采集 — 绿 */
-    .card-collect .card-icon { background: #ecfdf5; }
-    .card-collect .card-tag { background: #ecfdf5; color: #059669; }
+    /* 达人管理 — 绿 */
+    .card-kol .card-icon { background: #e6faf0; }
+    .card-kol .card-tag { background: #e6faf0; color: #0d7a4e; }
 
     @media (max-width: 640px) {
       .header { padding: 20px 16px; }
@@ -133,91 +133,72 @@
 
   <div class="header">
     <h1>AI 工具箱</h1>
-    <p>内容团队工具集合 · 共 9 个工具</p>
+    <p>内容团队工具集合 · 共 7 个工具</p>
   </div>
 
   <div class="section">
 
+    <div class="section-title">顶层设计</div>
+    <div class="grid">
+
+      <a class="card card-base" href="/benchmark-analyzer">
+        <div class="card-icon">🔍</div>
+        <div class="card-title">对标分析助手</div>
+        <div class="card-desc">对标账号的系统化拆解与分析，输出人格档案与内容规划</div>
+        <div class="card-tag">顶层设计</div>
+      </a>
+
+      <a class="card card-base" href="/persona-positioning">
+        <div class="card-icon">🎯</div>
+        <div class="card-title">人设定位助手</div>
+        <div class="card-desc">基于对标账号分析，为达人生成专属人格档案与内容规划</div>
+        <div class="card-tag">顶层设计</div>
+      </a>
+
+    </div>
+
     <div class="section-title">内容仿写</div>
     <div class="grid">
 
-      <a class="card card-write" href="http://192.168.74.130/persona-writer/" target="_blank">
+      <a class="card card-write" href="/persona-writer">
         <div class="card-icon">✍️</div>
         <div class="card-title">人设脚本仿写助手</div>
         <div class="card-desc">三步完成人设内容仿写：加载风格 → 对标验证 → 仿写创作</div>
         <div class="card-tag">内容仿写</div>
       </a>
 
-      <div class="card card-write card-disabled">
+      <a class="card card-write" href="/qianchuan-writer">
         <div class="card-icon">📣</div>
         <div class="card-title">千川脚本仿写助手</div>
         <div class="card-desc">千川投流素材的对标仿写工具</div>
-        <div class="card-tag">开发中</div>
-      </div>
+        <div class="card-tag">内容仿写</div>
+      </a>
 
-      <div class="card card-write card-disabled">
-        <div class="card-icon">🎙️</div>
-        <div class="card-title">直播间脚本仿写助手</div>
-        <div class="card-desc">直播间讲解脚本的对标仿写工具</div>
-        <div class="card-tag">开发中</div>
-      </div>
-
-    </div>
-
-    <div class="section-title">复盘工具</div>
-    <div class="grid">
-
-      <div class="card card-review card-disabled">
-        <div class="card-icon">📋</div>
-        <div class="card-title">人设脚本复盘助手</div>
-        <div class="card-desc">人设内容的数据复盘与风格校准</div>
-        <div class="card-tag">开发中</div>
-      </div>
-
-      <div class="card card-review card-disabled">
-        <div class="card-icon">📈</div>
-        <div class="card-title">千川脚本复盘助手</div>
-        <div class="card-desc">千川投流效果的数据复盘与优化</div>
-        <div class="card-tag">开发中</div>
-      </div>
-
-      <div class="card card-review card-disabled">
-        <div class="card-icon">📝</div>
-        <div class="card-title">直播间脚本复盘助手</div>
-        <div class="card-desc">直播间内容的数据复盘与优化</div>
-        <div class="card-tag">开发中</div>
-      </div>
-
-    </div>
-
-    <div class="section-title">底层通用</div>
-    <div class="grid" style="margin-bottom: 40px;">
-
-      <div class="card card-base card-disabled">
-        <div class="card-icon">🎯</div>
-        <div class="card-title">人设定位助手</div>
-        <div class="card-desc">达人人设定位与差异化分析</div>
-        <div class="card-tag">开发中</div>
-      </div>
-
-      <a class="card card-base" href="http://192.168.74.130/benchmark-analyzer/" target="_blank">
-        <div class="card-icon">🔍</div>
-        <div class="card-title">对标分析助手</div>
-        <div class="card-desc">对标账号的系统化拆解与分析，输出人格档案与内容规划</div>
-        <div class="card-tag">底层通用</div>
+      <a class="card card-write" href="/seeding-writer">
+        <div class="card-icon">🌱</div>
+        <div class="card-title">种草仿写助手</div>
+        <div class="card-desc">种草内容的对标仿写工具，快速产出高转化文案</div>
+        <div class="card-tag">内容仿写</div>
       </a>
 
     </div>
 
-    <div class="section-title">数据采集</div>
-    <div class="grid" style="margin-bottom: 40px;">
+    <div class="section-title">达人管理</div>
+    <div class="grid">
 
-      <div class="card card-collect card-disabled">
-        <div class="card-icon">📇</div>
-        <div class="card-title">红人信息收集</div>
-        <div class="card-desc">批量采集达人基础信息与合作数据，快速建立红人资源库</div>
-        <div class="card-tag">开发中</div>
-      </div>
+      <a class="card card-kol" href="/kol-intake">
+        <div class="card-icon">📋</div>
+        <div class="card-title">红人信息采集</div>
+        <div class="card-desc">达人入职信息在线采集与管理，一键导出档案文件</div>
+        <div class="card-tag">达人管理</div>
+      </a>
+
+      <a class="card card-kol" href="/material-library">
+        <div class="card-icon">🗂️</div>
+        <div class="card-title">素材库</div>
+        <div class="card-desc">达人历史视频素材的统一管理与转录，支持 AI 分析</div>
+        <div class="card-tag">达人管理</div>
+      </a>
 
     </div>
 
