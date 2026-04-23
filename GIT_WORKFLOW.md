@@ -214,6 +214,7 @@ git checkout -b 分支名称
 - 如果选择 `seeding-writer-web`，则读取：
   - `seeding-writer-web/README.md`
   - `seeding-writer-web/CHANGELOG.md`
+- 等等项目
 ```
 
 版本号规则：

@@ -261,14 +261,9 @@ export default function Home() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">
-              ← 返回工具箱
-            </a>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">对标分析助手</h1>
-              <p className="text-sm text-gray-500 mt-1">系统化拆解对标账号，输出人格档案与内容规划</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">对标分析助手</h1>
+            <p className="text-sm text-gray-500 mt-1">系统化拆解对标账号，输出人格档案与内容规划</p>
           </div>
           {step === 'result' && (
             <div className="flex items-center gap-2">
@@ -366,11 +361,18 @@ export default function Home() {
                 {/* 方式二：手动粘贴 */}
                 <div className="border border-gray-200 rounded-xl p-5">
                   <h3 className="text-sm font-semibold text-gray-900 mb-1">方式二：直接粘贴文案</h3>
-                  <p className="text-xs text-gray-500 mb-4">
+                  <p className="text-xs text-gray-500 mb-3">
                     用 <a href="https://www.aihao.co" target="_blank" className="text-blue-500 underline">AI好记</a> 等工具转好文案后粘贴到下方
                   </p>
-                  <div className="flex items-center justify-center h-20 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <p className="text-xs text-gray-400">直接在下方文本框中编辑</p>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs font-medium text-amber-800 mb-1.5">需要准备两组数据：</p>
+                      <ol className="text-xs text-amber-700 space-y-1 list-decimal list-inside">
+                        <li><span className="font-medium">点赞 TOP10 文案</span> — 对标账号全部作品里点赞最高的 10 条视频文案</li>
+                        <li><span className="font-medium">最近30天全部文案</span> — 对标账号最近一个月发布的所有视频文案</li>
+                      </ol>
+                    </div>
+                    <p className="text-xs text-gray-400">↓ 滚动到下方文本框粘贴</p>
                   </div>
                 </div>
               </div>
@@ -392,17 +394,20 @@ export default function Home() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900">数据一：全账号点赞 TOP10</h3>
-                  <p className="text-xs text-gray-500 mt-1">整个账号按点赞量排序最高的10条视频文案</p>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-600 text-xs font-bold rounded mr-1.5">1</span>
+                    全账号点赞 TOP10 文案
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">对标账号全部作品里，按点赞量排序最高的 10 条视频文案（代表这个账号历史上最能打的内容）</p>
                 </div>
                 {top10Content && <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">已填充</span>}
               </div>
               <textarea
                 value={top10Content}
                 onChange={(e) => setTop10Content(e.target.value)}
-                placeholder="自动抓取后会自动填充，也可以手动粘贴..."
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm resize-none"
-                rows={8}
+                placeholder={"在这里粘贴 10 条点赞最高的视频文案...\n\n格式建议：每条文案之间用空行分隔，标注视频标题和点赞数\n\n示例：\n【视频1】标题：xxx | 点赞：12.3万\n文案内容...\n\n【视频2】标题：xxx | 点赞：10.1万\n文案内容..."}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm resize-y min-h-[200px]"
+                rows={12}
               />
               {top10Content && <p className="text-xs text-gray-400 mt-2">已输入 {top10Content.length} 字</p>}
             </div>
@@ -411,17 +416,20 @@ export default function Home() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900">数据二：最近30天全部内容</h3>
-                  <p className="text-xs text-gray-500 mt-1">最近一个月内发布的所有视频文案</p>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-600 text-xs font-bold rounded mr-1.5">2</span>
+                    最近30天全部内容文案
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">对标账号最近一个月发布的所有视频文案（代表当前内容策略和方向）</p>
                 </div>
                 {recent30Content && <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">已填充</span>}
               </div>
               <textarea
                 value={recent30Content}
                 onChange={(e) => setRecent30Content(e.target.value)}
-                placeholder="自动抓取后会自动填充，也可以手动粘贴..."
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm resize-none"
-                rows={8}
+                placeholder={"在这里粘贴最近 30 天发布的所有视频文案...\n\n格式建议：每条文案之间用空行分隔，标注发布日期\n\n示例：\n【2026-04-08】标题：xxx\n文案内容...\n\n【2026-04-06】标题：xxx\n文案内容..."}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm resize-y min-h-[200px]"
+                rows={12}
               />
               {recent30Content && <p className="text-xs text-gray-400 mt-2">已输入 {recent30Content.length} 字</p>}
             </div>

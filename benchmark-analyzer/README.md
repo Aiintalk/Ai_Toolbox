@@ -2,97 +2,118 @@
 
 ## 1. 项目定位
 
-输入抖音账号链接，自动抓取视频数据，通过 AI 生成该账号的人格档案与内容规划，支持历史记录保存与 Word 导出。
+面向抖音内容创作者的 AI 对标分析工具，通过输入对标账号视频文案，自动生成该账号的「人格档案」与「内容规划」两份结构化文档，帮助团队系统拆解竞品账号的内容策略。
 
 ## 2. 当前功能
 
-- 输入抖音账号主页链接，自动抓取 TOP10 + 近 30 天视频数据
-- AI 流式生成「人格档案」与「内容规划」两份文档
-- 支持历史记录列表查看与恢复
-- 支持一键导出 Word 文档（.docx）
-- 双 Tab 切换展示：人格档案 / 内容规划
+- 输入抖音号或主页分享链接，自动拉取全部作品并提取点赞 TOP10 文案和近 30 天文案
+- 支持手动粘贴两组文案数据（无需抖音账号接口）
+- AI 流式分析，先输出「人格档案」，再输出「内容规划」
+- 分 Tab 展示两份文档，支持一键复制
+- 导出 Word 文档（`.docx`），文件名含账号名和日期
+- 历史记录自动保存，随时加载过往分析结果
 
 ## 3. 使用流程
 
-1. 在输入框粘贴抖音账号主页链接
-2. 点击「抓取数据」，系统自动拉取 TOP10 和近 30 天视频列表
-3. 确认抓取结果后点击「开始分析」
-4. 等待 AI 流式输出「人格档案」与「内容规划」
-5. 切换 Tab 查看两份文档内容
-6. 点击「导出 Word」下载分析结果
+**方式一：自动抓取**
+1. 在「抖音号/链接」输入框输入抖音号（如 `DNX833`）或主页链接
+2. 点击「解析」，系统自动填充 TOP10 文案和近 30 天文案
+3. 可选填账号昵称，点击「开始分析」
+
+**方式二：手动粘贴**
+1. 直接将两组文案分别粘贴到文本框
+2. 可选填账号昵称，点击「开始分析」
+
+**查看结果**
+1. 页面切换到结果页，AI 流式输出两份文档
+2. 通过 Tab 切换「人格档案」和「内容规划」，可复制或导出 Word
+3. 点击「← 返回」重新分析；首页历史记录卡片可随时加载
 
 ## 4. 目录结构
 
 ```
 benchmark-analyzer/
 ├── app/
-│   ├── page.tsx                  # 主页面（输入 → 分析结果两步流程）
-│   ├── layout.tsx                # 根布局
-│   ├── globals.css               # 全局样式
+│   ├── page.tsx                    # 主页面（输入页 + 结果页）
+│   ├── layout.tsx
+│   ├── globals.css
 │   └── api/
-│       ├── analyze/route.ts      # AI 分析接口（流式输出，返回人格档案+内容规划）
-│       ├── export-word/route.ts  # Word 导出接口
-│       ├── fetch-account/route.ts# 抖音账号数据抓取接口
-│       └── history/route.ts      # 历史记录读写接口
+│       ├── analyze/route.ts        # AI 流式分析接口
+│       ├── fetch-account/route.ts  # 抖音账号数据抓取
+│       ├── history/
+│       │   ├── route.ts            # 历史记录列表读写
+│       │   └── [id]/route.ts       # 单条历史记录读取
+│       └── export-word/route.ts    # Word 文档导出
 ├── lib/
-│   ├── yunwu.ts                  # AI API 封装
-│   └── tikhub.ts                 # TikHub API 封装
-├── data/                         # 历史分析记录（每条一个 JSON 文件）
+│   ├── yunwu.ts                    # 云雾 AI 封装（SSE 流式）
+│   ├── tikhub.ts                   # TikHub 抖音数据封装
+│   └── history.ts                  # 历史记录本地 JSON 读写
+├── data/                           # 运行时自动创建，存储历史分析 JSON
 ├── next.config.js
 ├── tailwind.config.js
 ├── tsconfig.json
 └── package.json
 ```
 
-## 5. 核心接口 / 核心模块
+## 5. 核心接口
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/fetch-account` | POST | 输入账号 URL，返回 TOP10 + 近 30 天视频数据 |
-| `/api/analyze` | POST | 流式输出人格档案与内容规划，用 `===SPLIT===` 分隔两份文档 |
-| `/api/export-word` | POST | 接收 Markdown 内容，返回 .docx 文件流 |
-| `/api/history` | GET | 返回历史记录列表 |
-| `/api/history` | POST | 保存一条分析记录 |
+| `/api/fetch-account` | POST | 接收 `{ url }`，调用 TikHub 拉取账号数据，返回 TOP10/近 30 天文案 |
+| `/api/analyze` | POST | 接收 `{ accountName, top10Content, recent30Content }`，SSE 流式返回两份文档（用 `===SPLIT===` 分隔） |
+| `/api/history` | GET | 返回所有历史记录摘要列表 |
+| `/api/history` | POST | 保存一条分析结果，返回 `{ id }` |
+| `/api/history/[id]` | GET | 获取单条历史完整数据 |
+| `/api/export-word` | POST | 接收 `{ nickname, profileResult, planResult, type }`，返回 `.docx` 文件流 |
 
-**流式协议：**
-- 响应为原始文本流（`text/plain`）
-- 两份文档之间用 `===SPLIT===` 分隔，前半为人格档案，后半为内容规划
-
-## 6. 环境变量 / 运行要求
+## 6. 环境变量
 
 ```env
-YUNWU_API_KEY=           # AI API 密钥（Yunwu 代理）
-YUNWU_BASE_URL=          # AI API 地址（OpenAI 兼容协议）
-TIKHUB_API_KEY=          # TikHub API 密钥（抖音数据）
-BENCHMARK_DATA_DIR=      # 历史数据存储目录（默认 ./data/）
+YUNWU_API_KEY=        # 云雾 AI API 密钥
+YUNWU_BASE_URL=       # 云雾 AI 接口地址
+TIKHUB_API_KEY=       # TikHub API 密钥
 ```
 
 **运行：**
 ```bash
-cd benchmark-analyzer
-npm install
-npm run dev
+npm install && npm run dev
 ```
 
-访问地址：`http://localhost:3000/benchmark-analyzer`
+访问地址：`http://localhost:3000`（部署时 basePath 为 `/benchmark-analyzer`，端口 3004）
 
 ## 7. 开发注意事项
 
-- `basePath` 为 `/benchmark-analyzer`，所有接口调用需带此前缀
-- 历史记录存储在文件系统（`BENCHMARK_DATA_DIR`），不使用数据库
-- 流式输出用 `===SPLIT===` 分隔两份文档，前端按此切割后分别渲染
-- `SimpleMarkdown` 使用 `dangerouslySetInnerHTML`，存在 XSS 风险（已知技术债）
-- 导出 Word 依赖 `docx` 库，修改导出格式时注意文档结构
+- `basePath` 为 `/benchmark-analyzer`，前端代码中通过常量 `const BASE = '/benchmark-analyzer'` 管理
+- AI 分析使用 `claude-sonnet-4-6`，`/api/analyze` 超时设置为 120 秒
+- 历史记录存储在本地 `data/` 目录（JSON 文件），容器重启会丢失，生产环境需挂载持久化卷
+- TikHub 翻页上限 10 页（200 条），超过 200 条作品的账号数据不完整
+- AI 输出以 `===SPLIT===` 分隔两份文档，前端据此切割展示
 
 ## 8. 当前状态 / 已知问题
 
 - **完成度**：核心功能完整，已上线
 - **已知问题**：
-  - `react-markdown` 已安装但未使用（冗余依赖）
-  - `SimpleMarkdown` 未做 HTML 转义，存在 XSS 风险
-  - 历史记录无分页，数据量大时加载较慢
-  - 无身份验证，任何人可访问 API
+  - 历史记录依赖本地文件系统，无持久化卷时重启丢失
+  - TikHub 翻页上限 200 条，大账号数据不完整
+  - 无身份验证，任何人可访问和下载历史记录
 
-## 9. 文档更新说明
+## 9. 流程功能测试
 
-- **2026-04-19**：初次创建 README，基于当前代码整理
+| 步骤 | 测试项 | 操作说明 | 预期结果 | 状态 |
+|------|--------|----------|----------|------|
+| 输入 | 自动抓取 | 输入抖音号点击解析 | 正确填充两组文案 | ⬜ |
+| 输入 | 手动粘贴 | 直接粘贴两组文案 | 文案正确显示在输入框 | ⬜ |
+| 分析 | 开始分析 | 点击「开始分析」 | 切换到结果页，AI 流式输出 | ⬜ |
+| 结果 | 人格档案 Tab | 切换到「人格档案」 | 内容正确展示 | ⬜ |
+| 结果 | 内容规划 Tab | 切换到「内容规划」 | 内容正确展示 | ⬜ |
+| 结果 | 复制 | 点击「复制」 | 内容复制到剪贴板 | ⬜ |
+| 导出 | 导出人格档案 | 点击「导出人格档案」 | 下载 .docx 文件 | ⬜ |
+| 导出 | 导出内容规划 | 点击「导出内容规划」 | 下载 .docx 文件 | ⬜ |
+| 历史 | 历史记录展示 | 返回首页 | 本次分析出现在历史列表 | ⬜ |
+| 历史 | 加载历史 | 点击历史记录卡片 | 正确恢复分析结果 | ⬜ |
+
+> 状态标记：⬜ 未测试 / ✅ 通过 / ❌ 未通过
+
+## 10. 文档更新说明
+
+- **2026-04-23**：初次创建 README，基于当前代码整理
