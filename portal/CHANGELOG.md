@@ -4,6 +4,20 @@
 
 ---
 
+## v1.2.0 - 2026-04-25
+
+### Added
+- 接入 auth-service：页面加载时调 `/auth/api/me` 校验登录态
+- 顶栏新增用户名展示和"退出登录"按钮
+- 未登录 → 跳转 `/auth/login`
+- 已登录但 role=kol → 跳转 `/kol-portal/`（员工 portal 仅对 admin / employee 开放）
+
+### Notes
+- 完整端到端验证依赖 nginx 反代到同域，本地无法完整测试，将在测试服部署阶段验证
+- 本次仅前端兜底，后端 auth_request 守卫待运维侧手动配置
+
+---
+
 ## v1.1.1 - 2026-04-22
 
 ### Changed
