@@ -127,13 +127,71 @@
       .section { padding: 0 16px; }
       .card { padding: 20px; }
     }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #5a5a72;
+    }
+
+    .user-info .username {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid #d8d8e2;
+      color: #5a5a72;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .logout-btn:hover {
+      background: #f0f0f5;
+      color: #1a1a2e;
+    }
+
+    .auth-loading {
+      position: fixed;
+      inset: 0;
+      background: #f8f9fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8b8b9e;
+      font-size: 14px;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>AI 工具箱</h1>
-    <p>内容团队工具集合 · 共 7 个工具</p>
+  <div id="auth-loading" class="auth-loading">校验登录状态…</div>
+
+  <div class="header" style="display:none" id="page-header">
+    <div class="header-row">
+      <div>
+        <h1>AI 工具箱</h1>
+        <p>内容团队工具集合 · 共 7 个工具</p>
+      </div>
+      <div class="user-info">
+        <span><span class="username" id="user-name"></span></span>
+        <button class="logout-btn" id="logout-btn">退出登录</button>
+      </div>
+    </div>
   </div>
 
   <div class="section">
@@ -203,6 +261,61 @@
     </div>
 
   </div>
+
+  <script>
+    (function () {
+      var loginUrl = '/auth/login';
+      var kolPortalUrl = '/kol-portal/';
+      var meUrl = '/auth/api/me';
+      var logoutUrl = '/auth/api/logout';
+
+      function redirectToLogin() {
+        window.location.href = loginUrl;
+      }
+
+      function showPage(user) {
+        document.getElementById('auth-loading').style.display = 'none';
+        document.getElementById('page-header').style.display = '';
+        var sections = document.querySelectorAll('.section');
+        for (var i = 0; i < sections.length; i++) sections[i].style.display = '';
+        document.getElementById('user-name').textContent = user.username;
+      }
+
+      function bindLogout() {
+        document.getElementById('logout-btn').addEventListener('click', function () {
+          fetch(logoutUrl, { method: 'POST', credentials: 'same-origin' })
+            .then(function () { redirectToLogin(); })
+            .catch(function () { redirectToLogin(); });
+        });
+      }
+
+      // hide all .section until auth resolved
+      var sections = document.querySelectorAll('.section');
+      for (var i = 0; i < sections.length; i++) sections[i].style.display = 'none';
+
+      fetch(meUrl, { credentials: 'same-origin' })
+        .then(function (res) {
+          if (res.status === 401) { redirectToLogin(); return null; }
+          if (!res.ok) throw new Error('auth check failed: ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          var user = data.user;
+          if (user.role === 'kol') {
+            window.location.href = kolPortalUrl;
+            return;
+          }
+          // admin / employee
+          showPage(user);
+          bindLogout();
+        })
+        .catch(function () {
+          // network error or auth-service down — fall back to login page
+          redirectToLogin();
+        });
+    })();
+  </script>
 
 </body>
 </html>
