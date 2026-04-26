@@ -5,6 +5,7 @@ const DATA_DIR = path.join(process.cwd(), 'data')
 
 export interface Submission {
   id: string
+  userId?: string         // 提交人的 username（kol 隔离用）
   nickname: string
   submittedAt: string
   answers: Record<string, string>
@@ -32,4 +33,13 @@ export function getSubmission(id: string): Submission | null {
   const fp = path.join(DATA_DIR, `${id}.json`)
   if (!fs.existsSync(fp)) return null
   return JSON.parse(fs.readFileSync(fp, 'utf-8'))
+}
+
+/**
+ * 按 userId 查询该用户已提交的记录（一人一份）。
+ * 找不到返回 null。
+ */
+export function getSubmissionByUser(userId: string): Submission | null {
+  const all = listSubmissions()
+  return all.find(s => s.userId === userId) || null
 }

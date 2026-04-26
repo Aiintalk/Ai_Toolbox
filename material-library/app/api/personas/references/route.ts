@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSession, canAccessPersona } from "@/lib/auth";
 
 function getPersonasDir() {
   return path.join(process.cwd(), "data", "personas");
@@ -10,12 +11,21 @@ function sanitizeFilename(str: string): string {
   return str.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, "_").slice(0, 60);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "未登录" }, { status: 401 });
+    }
+
     const { persona, title, likes, source, type, content } = await request.json();
 
     if (!persona || !title || !content) {
       return NextResponse.json({ error: "persona, title, content 为必填" }, { status: 400 });
+    }
+
+    if (!canAccessPersona(session, persona)) {
+      return NextResponse.json({ error: "无权修改该达人素材" }, { status: 403 });
     }
 
     const refsDir = path.join(getPersonasDir(), persona, "references");
@@ -53,8 +63,13 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "未登录" }, { status: 401 });
+    }
+
     const { persona, filename } = await request.json();
 
     if (!persona || !filename) {
@@ -64,6 +79,10 @@ export async function DELETE(request: Request) {
     // Prevent path traversal
     if (filename.includes("/") || filename.includes("..")) {
       return NextResponse.json({ error: "非法文件名" }, { status: 400 });
+    }
+
+    if (!canAccessPersona(session, persona)) {
+      return NextResponse.json({ error: "无权删除该达人素材" }, { status: 403 });
     }
 
     const filePath = path.join(getPersonasDir(), persona, "references", filename);

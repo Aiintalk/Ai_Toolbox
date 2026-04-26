@@ -26,6 +26,9 @@ export default function KolIntakePage() {
   const [collectCount, setCollectCount] = useState(0)
   const [collectItems, setCollectItems] = useState<string[]>([])
 
+  // 已有提交记录提示（覆盖式修改）
+  const [existingSubmittedAt, setExistingSubmittedAt] = useState<string | null>(null)
+
   // Use refs to avoid stale closures in async functions
   const currentQRef = useRef(currentQ)
   const collectCountRef = useRef(collectCount)
@@ -45,6 +48,21 @@ export default function KolIntakePage() {
       setStarted(true)
     }
   }, [started])
+
+  // 进入页面时拉取自己的填写进度，已有提交则提示
+  useEffect(() => {
+    let cancelled = false
+    fetch('/kol-intake/api/progress', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return
+        if (data.submittedAt) {
+          setExistingSubmittedAt(data.submittedAt)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => { scroll() }, [messages])
   useEffect(() => { if (currentQ >= 0 && !thinking) inputRef.current?.focus() }, [currentQ, thinking])
@@ -365,10 +383,17 @@ export default function KolIntakePage() {
       {/* Input area */}
       <div className="bg-white border-t border-gray-200 px-4 py-3 max-w-2xl mx-auto w-full">
         {!started ? null : currentQ < 0 && !done ? (
-          <button onClick={startQuestions}
-            className="w-full py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition">
-            开始聊吧
-          </button>
+          <>
+            {existingSubmittedAt && (
+              <div className="mb-3 px-3 py-2 rounded-lg bg-purple-50 border border-purple-100 text-xs text-purple-700">
+                你之前已经填过（{existingSubmittedAt}）。重新填写会在原有答案上覆盖（没答的题保留之前的答案）。
+              </div>
+            )}
+            <button onClick={startQuestions}
+              className="w-full py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition">
+              {existingSubmittedAt ? '重新填写' : '开始聊吧'}
+            </button>
+          </>
         ) : done && !submitted ? (
           <button onClick={handleFinalSubmit} disabled={submitting}
             className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl font-medium hover:opacity-90 transition disabled:opacity-50">

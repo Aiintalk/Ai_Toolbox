@@ -28,6 +28,10 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const res = await fetch('/kol-intake/api/submissions')
+      if (res.status === 401) {
+        window.location.href = '/auth/login?next=' + encodeURIComponent(location.pathname)
+        return
+      }
       setSubs(await res.json())
     } catch {}
     setLoading(false)

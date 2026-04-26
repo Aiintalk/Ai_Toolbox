@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-04-26 (PR3)
+
+### kol-intake / material-library 用户隔离 + 进度 API
+- `kol-intake` v2.0.0 → v2.1.0：接入登录、kol 数据隔离、新增 `/api/progress`、提交改为一人一份+部分覆盖、前端「已有提交」提示
+- `material-library` v2.0.0 → v2.1.0：接入登录、kol 只能看 / 改自己 username 对应的 persona、新增 `/api/progress`（8 项完成度）、前端 kol 自动选 persona 隐藏切换器
+- 两个模块均依赖 `JWT_SECRET`（与 auth-service 一致），共享接口对 persona-writer / qianchuan-writer / seeding-writer 行为兼容
+
+---
+
 ## 2026-04-25 (PR2)
 
 ### portal 接入登录系统
