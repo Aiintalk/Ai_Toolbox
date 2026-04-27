@@ -22,6 +22,8 @@ export default function Home() {
   const [step, setStep] = useState(1)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null)
+  const [userRole, setUserRole] = useState<'admin' | 'employee' | 'kol' | null>(null)
+  const [userName, setUserName] = useState<string>('')
 
   // Step 2: 对标验证
   const [shareUrl, setShareUrl] = useState('')
@@ -57,7 +59,18 @@ export default function Home() {
 
   useEffect(() => {
     fetch(`/material-library/api/personas`).then(r => r.json()).then(d => {
-      setPersonas(d.personas || [])
+      const list = d.personas || []
+      setPersonas(list)
+      // KOL 自动锁定为自己的人格
+      fetch(`/auth/api/me`).then(r => r.ok ? r.json() : null).then(me => {
+        if (!me) return
+        setUserRole(me.role)
+        setUserName(me.username || '')
+        if (me.role === 'kol' && me.username) {
+          const own = list.find((p: Persona) => p.name === me.username)
+          if (own) setSelectedPersona(own)
+        }
+      }).catch(() => {})
     })
   }, [])
 
@@ -497,6 +510,7 @@ ${structureAnalysis}
         {/* ========== STEP 1: 加载风格 ========== */}
         {step === 1 && (
           <div className="space-y-4">
+            {userRole !== 'kol' && (
             <div className="bg-white rounded-lg border p-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">选择达人</label>
               <select
@@ -508,6 +522,7 @@ ${structureAnalysis}
                 {personas.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
               </select>
             </div>
+            )}
 
             {selectedPersona && (
               <div className="bg-white rounded-lg border p-4 space-y-3">

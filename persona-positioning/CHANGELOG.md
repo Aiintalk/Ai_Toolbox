@@ -4,6 +4,14 @@
 
 ---
 
+## v1.1.0 - 2026-04-28
+
+### Added
+- 接入 `@ai-toolbox/auth-shared`：`api/kol-submissions` 增加 `getSession` 校验
+- KOL 仅能看到自己的 KOL 提交（`userId === session.username`），员工/管理员看全部
+
+---
+
 ## v2.0.0 - 2026-04-23
 
 ### Added
