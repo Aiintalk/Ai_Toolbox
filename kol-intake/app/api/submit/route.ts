@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { saveSubmission } from '@/lib/storage'
+import { saveSubmission, getSubmissionByUser } from '@/lib/storage'
+import { getSession } from '@/lib/auth'
 
 async function generateReport(answers: Record<string, string>): Promise<string> {
   const apiKey = process.env.YUNWU_API_KEY
@@ -136,19 +137,37 @@ ${sections.join('\n\n')}
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req)
+    if (!session) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 })
+    }
+
     const { answers } = await req.json()
     if (!answers || typeof answers !== 'object') {
       return NextResponse.json({ error: '无效数据' }, { status: 400 })
     }
 
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-    const nickname = answers.nickname || '未填写'
+    // kol 一人一份：覆盖之前的提交（沿用旧 id 保持引用稳定）
+    // employee/admin 也走 userId 写入，便于追溯（一人一份）
+    const userId = session.username
+    const existing = getSubmissionByUser(userId)
+    const id = existing?.id || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6))
+
+    // 部分覆盖：本次未填的字段沿用之前的答案
+    const mergedAnswers: Record<string, string> = { ...(existing?.answers || {}) }
+    for (const [k, v] of Object.entries(answers as Record<string, unknown>)) {
+      if (typeof v === 'string' && v.trim().length > 0) {
+        mergedAnswers[k] = v
+      }
+    }
+
+    const nickname = mergedAnswers.nickname || existing?.nickname || '未填写'
     const now = new Date()
     const submittedAt = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
 
-    const report = await generateReport(answers)
+    const report = await generateReport(mergedAnswers)
 
-    saveSubmission({ id, nickname, submittedAt, answers, report })
+    saveSubmission({ id, userId, nickname, submittedAt, answers: mergedAnswers, report })
 
     return NextResponse.json({ ok: true, id, report })
   } catch (e) {

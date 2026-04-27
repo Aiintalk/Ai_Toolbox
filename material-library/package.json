@@ -1,6 +1,6 @@
 {
   "name": "material-library-web",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,8 @@
   "dependencies": {
     "next": "^14.2.35",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "jose": "^5.9.6"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

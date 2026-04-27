@@ -31,6 +31,9 @@ export default function Home() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null)
 
+  // 当前登录用户（用于 kol 自动选 persona、隐藏切换器）
+  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
+
   // 上传表单
   const [activeType, setActiveType] = useState<string | null>(null)
   const [refTitle, setRefTitle] = useState('')
@@ -47,11 +50,42 @@ export default function Home() {
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
 
+  // 拉取登录态
+  useEffect(() => {
+    fetch('/auth/api/me', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (data?.user) {
+          setCurrentUser({ username: data.user.username, role: data.user.role })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     fetch(`${BASE}/api/personas`).then(r => r.json()).then(d => {
-      setPersonas(d.personas || [])
+      const list: Persona[] = d.personas || []
+      setPersonas(list)
+
+      // kol 角色：自动选定与自己 username 同名的 persona
+      // 如果服务端没返回（目录还没建），就 fabricate 一个空的
+      if (currentUser?.role === 'kol') {
+        const own = list.find(p => p.name === currentUser.username)
+        if (own) {
+          setSelectedPersona(own)
+        } else {
+          const empty: Persona = {
+            name: currentUser.username,
+            soul: '',
+            contentPlan: '',
+            references: [],
+          }
+          setPersonas([empty])
+          setSelectedPersona(empty)
+        }
+      }
     })
-  }, [])
+  }, [currentUser])
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -198,21 +232,30 @@ export default function Home() {
 
         {/* 选择达人 */}
         <div className="bg-white rounded-lg border p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">选择达人</label>
-          <select
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-            value={selectedPersona?.name || ''}
-            onChange={e => {
-              const p = personas.find(p => p.name === e.target.value) || null
-              setSelectedPersona(p)
-              setActiveType(null)
-              setDeleteIdx(null)
-              setExpandedIdx(null)
-            }}
-          >
-            <option value="">请选择...</option>
-            {personas.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-          </select>
+          {currentUser?.role === 'kol' ? (
+            <div className="text-sm text-gray-700">
+              <span className="text-gray-500">当前达人：</span>
+              <span className="font-medium">{selectedPersona?.name || currentUser.username}</span>
+            </div>
+          ) : (
+            <>
+              <label className="block text-sm font-medium text-gray-700 mb-2">选择达人</label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={selectedPersona?.name || ''}
+                onChange={e => {
+                  const p = personas.find(p => p.name === e.target.value) || null
+                  setSelectedPersona(p)
+                  setActiveType(null)
+                  setDeleteIdx(null)
+                  setExpandedIdx(null)
+                }}
+              >
+                <option value="">请选择...</option>
+                {personas.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+              </select>
+            </>
+          )}
         </div>
 
         {selectedPersona && !activeType && !editingField && (() => {

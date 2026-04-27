@@ -4,6 +4,27 @@
 
 ---
 
+## v2.1.0 - 2026-04-26
+
+### Added
+- 接入 auth-service 登录系统：所有 API 加 cookie 鉴权（jose 验证 JWT）
+- 用户隔离：kol 角色只能看 / 改自己的提交记录；employee / admin 可见全部
+- 新增 `/api/progress` 接口：返回当前 kol 是否答完（completed / percent: 0|100）
+- 提交逻辑改为「一人一份 + 部分覆盖」：再次提交时沿用旧 id，已答字段覆盖、未答字段保留
+- 前端：进入页面时拉取自己的 submission，已有则显示提示「重新填写会在原有答案上覆盖」
+- `Submission` 数据结构新增 `userId` 字段
+
+### Changed
+- `/api/submissions` GET：按角色过滤
+- `/api/submissions/[id]` GET：kol 越权访问返回 403
+
+### Notes
+- 依赖环境变量 `JWT_SECRET`（必须与 auth-service 一致），未配置时使用 dev 默认值
+- 历史 submission 没有 `userId` 字段，会被 kol 视为「不属于自己」而过滤掉；employee / admin 仍可见
+- Admin 页（`/kol-intake/admin`）当前无角色限制，仍依赖路由守卫层（nginx 或前端跳转）保护
+
+---
+
 ## v2.0.0 - 2026-04-23
 
 ### Added

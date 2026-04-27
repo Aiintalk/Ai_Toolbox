@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSession, canSeeAll, canAccessPersona } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,14 +12,23 @@ interface PersonaInfo {
   references: string[];
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
     const { persona, field, content } = await request.json();
     if (!persona || !field || typeof content !== 'string') {
       return NextResponse.json({ error: 'Missing persona, field, or content' }, { status: 400 });
     }
     if (field !== 'soul' && field !== 'contentPlan') {
       return NextResponse.json({ error: 'Invalid field' }, { status: 400 });
+    }
+
+    if (!canAccessPersona(session, persona)) {
+      return NextResponse.json({ error: '无权修改该达人档案' }, { status: 403 });
     }
 
     const personaDir = path.join(process.cwd(), "data", "personas", persona);
@@ -39,8 +49,13 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
     const personasDir = path.join(process.cwd(), "data", "personas");
 
     if (!fs.existsSync(personasDir)) {
@@ -52,6 +67,9 @@ export async function GET() {
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
+
+      // kol 只能看到与自己 username 同名的 persona
+      if (!canSeeAll(session) && entry.name !== session.username) continue;
 
       const personaDir = path.join(personasDir, entry.name);
       const soulPath = path.join(personaDir, "soul.md");
