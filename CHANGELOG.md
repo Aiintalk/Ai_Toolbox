@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-04-28 (PR6)
+
+### 4 个工具接入登录 + KOL 自动锁定本人 persona
+- `persona-writer` v1.0.0 → v1.1.0：接入 `@ai-toolbox/auth-shared`，前端 `/auth/api/me` 探测角色；KOL 隐藏达人下拉、自动选中与 username 同名的 persona；员工/管理员保留下拉
+- `qianchuan-writer` v1.0.0 → v1.1.0：同上
+- `seeding-writer` v1.0.0 → v1.1.0：同上
+- `persona-positioning` v1.0.0 → v1.1.0：`api/kol-submissions` 接入 `getSession` + `canSeeAll`，KOL 仅能看到自身提交，员工/管理员看全部
+- `benchmark-analyzer` 不涉及人格选择，按用户决定本 PR 不改
+
+---
+
 ## 2026-04-27 (PR5)
 
 ### kol-portal 工具入口扩展 + 本地开发反代

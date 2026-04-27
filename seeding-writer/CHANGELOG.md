@@ -4,6 +4,14 @@
 
 ---
 
+## v1.1.0 - 2026-04-28
+
+### Added
+- 接入 `@ai-toolbox/auth-shared` 共享登录态
+- 前端调用 `/auth/api/me` 探测角色：KOL 自动锁定为与 username 同名的 persona、隐藏达人下拉；员工/管理员保留下拉
+
+---
+
 ## v2.0.0 - 2026-04-08
 
 ### Added
