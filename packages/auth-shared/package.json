@@ -10,5 +10,9 @@
   "peerDependencies": {
     "jose": "^5.9.6",
     "next": "^14.2.35"
+  },
+  "devDependencies": {
+    "jose": "^5.9.6",
+    "next": "^14.2.35"
   }
 }

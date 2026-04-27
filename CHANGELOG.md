@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-04-27 (PR5)
+
+### kol-portal 工具入口扩展 + 本地开发反代
+- `kol-portal` v1.0.0 → v1.1.0：工具入口扩到 7 个（分 3 组），全部带 `?persona=` 参数
+- 修复 `kol-portal` 消费 `@ai-toolbox/auth-shared` 的依赖解析问题（jose 找不到）
+- `packages/auth-shared` 显式声明 jose / next 为 devDependencies，需在该目录执行一次 npm install
+- 新增 `scripts/local-proxy.mjs` 本地反代脚本，监听 8080，模拟生产 nginx 路径分发
+- 7 个子应用 dev 端口固化（3001-3007），方便反代
+
+---
+
 ## 2026-04-26 (PR3)
 
 ### kol-intake / material-library 用户隔离 + 进度 API
