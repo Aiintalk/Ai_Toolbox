@@ -11,6 +11,50 @@
  */
 import http from 'node:http'
 import { request as httpRequest } from 'node:http'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PORTAL_DIR = path.resolve(__dirname, '..', 'portal')
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+}
+
+function servePortalStatic(req, res) {
+  // 去掉 /portal 前缀和 query
+  let urlPath = req.url.slice('/portal'.length).split('?')[0] || '/'
+  if (urlPath === '' || urlPath === '/') urlPath = '/index.html'
+
+  // 防穿越
+  const safe = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '')
+  const filePath = path.join(PORTAL_DIR, safe)
+  if (!filePath.startsWith(PORTAL_DIR)) {
+    res.writeHead(403); res.end('Forbidden'); return
+  }
+
+  fs.stat(filePath, (err, stat) => {
+    if (err || !stat.isFile()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end(`portal 静态文件未找到：${urlPath}`)
+      return
+    }
+    const ext = path.extname(filePath).toLowerCase()
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' })
+    fs.createReadStream(filePath).pipe(res)
+  })
+}
 
 const ROUTES = [
   { prefix: '/auth', target: 'http://127.0.0.1:3000' },
@@ -37,6 +81,11 @@ function pickTarget(url) {
 }
 
 const server = http.createServer((req, res) => {
+  // /portal 静态资源由本进程直接 serve（生产由 nginx serve）
+  if (req.url === '/portal' || req.url.startsWith('/portal/') || req.url.startsWith('/portal?')) {
+    return servePortalStatic(req, res)
+  }
+
   const target = pickTarget(req.url)
   const targetUrl = new URL(target)
 
@@ -66,5 +115,6 @@ server.listen(PORT, () => {
   console.log(`[local-proxy] listening on http://localhost:${PORT}`)
   console.log('[local-proxy] routes:')
   for (const r of ROUTES) console.log(`  ${r.prefix.padEnd(22)} → ${r.target}`)
+  console.log(`  ${'/portal'.padEnd(22)} → 静态文件 ${PORTAL_DIR}`)
   console.log(`  (其他)                → ${ROOT_TARGET}`)
 })
