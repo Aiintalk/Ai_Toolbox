@@ -1,5 +1,10 @@
 # kol-portal CHANGELOG
 
+## v1.1.1 - 2026-05-01
+
+### Fixed
+- 退出登录 405：`<a href="/auth/api/logout">` 浏览器发 GET，但 logout 仅实现 POST。改为 client component `LogoutButton`，POST 调用后跳转登录页。
+
 ## v1.1.0 - 2026-04-27
 
 ### Added

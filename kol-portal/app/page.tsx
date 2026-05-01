@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getServerSession, canSeeAll } from '@ai-toolbox/auth-shared'
+import LogoutButton from './LogoutButton'
 
 type ToolEntry = {
   name: string
@@ -94,12 +95,7 @@ export default async function KolPortalHome() {
               这里是你的专属工作台。所有工具都已绑定到你的账号。
             </p>
           </div>
-          <a
-            href="/auth/api/logout"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
-          >
-            退出登录
-          </a>
+          <LogoutButton />
         </header>
 
         {GROUPS.map((g) => {
