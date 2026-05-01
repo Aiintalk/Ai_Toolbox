@@ -16,3 +16,6 @@ Thumbs.db
 .idea/
 *.tmp
 *.bak
+
+# 各子应用本地运行时数据（personas、上传文件等）
+material-library/data/
