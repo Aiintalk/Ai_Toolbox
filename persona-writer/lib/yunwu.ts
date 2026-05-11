@@ -3,7 +3,7 @@ const YUNWU_BASE_URL = process.env.YUNWU_BASE_URL!;
 
 interface ChatMessage {
   role: string;
-  content: string;
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
 }
 
 export function chatStream(
