@@ -1,6 +1,6 @@
 {
   "name": "kol-intake",
-  "version": "2.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3007",
@@ -11,8 +11,7 @@
     "next": "^14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "docx": "^9.6.1",
-    "jose": "^5.9.6"
+    "docx": "^9.6.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

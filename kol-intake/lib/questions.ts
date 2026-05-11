@@ -25,6 +25,16 @@ export const questions: Question[] = [
     type: 'text',
   },
   {
+    id: 'douyin_name',
+    section: '基本信息',
+    sectionIcon: '👋',
+    required: true,
+    question: '你的抖音账号名叫什么？',
+    hint: '就是你抖音主页上显示的名字，比如"韩国欧尼慧敏"',
+    placeholder: '输入你的抖音账号名...',
+    type: 'text',
+  },
+  {
     id: 'age_city',
     section: '基本信息',
     sectionIcon: '👋',
