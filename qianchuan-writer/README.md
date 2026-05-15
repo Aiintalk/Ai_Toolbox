@@ -6,12 +6,12 @@
 
 ## 2. 当前功能
 
-- 从本地 `data/personas/` 加载达人风格档案，支持多达人切换
-- 上传产品文档（PDF / Word / Excel / PPT / TXT），AI 结构化提取产品信息
+- 跨服务调用 `material-library` 加载达人风格档案，支持多达人切换
+- 支持多文件批量上传产品文档（PDF / Word / Excel / PPT / TXT），AI 结构化提取产品信息
 - AI 按「背书 → 机制 → 种草」优先级对话式提炼卖点，支持三种卖点顺序
 - 支持抖音视频链接自动转录（ASR）或手动粘贴文案
 - AI 提取并标注爆款开头类型（好奇型 / 痛点型 / 反常识型 / 利益型 / 身份筛选型）
-- 生成完整千川口播脚本（含自检表），自动检测字数超标并压缩
+- 生成完整千川口播脚本（含自检表 + 原创度自检），自动检测字数超标并压缩（有原视频时以原视频字数为上限，否则默认 350 字）
 - 支持多轮对话迭代修改，一键导出终稿
 
 **千川 vs 种草的核心区别：**
@@ -28,7 +28,7 @@
 1. 下拉选择达人，确认后进入下一步
 
 **Step 2 — 提炼卖点**
-1. 上传产品文档（可选），AI 自动提取结构化产品信息
+1. 批量上传产品文档（可选，支持多文件），AI 自动提取结构化产品信息
 2. 选择卖点顺序（背书-机制-种草 / 机制-背书-种草 / 背书-种草-机制）
 3. AI 启动卖点提炼对话，可多轮追加需求
 4. 点击「采用卖点到表单」确认，进入下一步
@@ -41,9 +41,10 @@
 
 **Step 4 — 拼合脚本**
 1. AI 自动以「锁定开头 + 卖点 + 达人风格」生成完整脚本
-2. 自动校验字数，超标时触发 AI 自动压缩
-3. 多轮对话迭代修改
-4. 点击「导出终稿」复制到剪贴板
+2. 自动校验字数（有原视频时以原视频字数为上限，否则默认 350 字），超标时触发 AI 自动压缩
+3. 输出原创度自检（逐段对比对标原文与仿写，检测文字重复率）
+4. 多轮对话迭代修改
+5. 点击「导出终稿」复制到剪贴板
 
 ## 4. 目录结构
 
@@ -56,12 +57,12 @@ qianchuan-writer/
 │   └── api/
 │       ├── chat/route.ts             # AI 流式对话接口
 │       ├── fetch-video/route.ts      # 抖音视频信息获取
-│       ├── parse-product/route.ts    # 产品文档解析
+│       ├── parse-product/route.ts    # 产品文档解析（支持多文件批量）
 │       ├── transcribe/
 │       │   ├── upload/route.ts       # 视频上传 OSS + 提交 ASR
 │       │   └── poll/route.ts         # 轮询 ASR 转录结果
 │       └── personas/
-│           ├── route.ts              # 获取达人列表
+│           ├── route.ts              # 获取达人列表（本地 data/personas）
 │           └── references/route.ts  # 素材库增删
 ├── lib/
 │   ├── yunwu.ts
@@ -71,9 +72,9 @@ qianchuan-writer/
 ├── data/
 │   └── personas/{达人名}/
 │       ├── soul.md
-│       ├── content-plan.md
-│       └── references/
+│       └── content-plan.md
 ├── next.config.js
+├── postcss.config.js
 ├── tailwind.config.js
 ├── tsconfig.json
 └── package.json
@@ -84,14 +85,14 @@ qianchuan-writer/
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/chat` | POST | AI 流式对话，body: `{ messages, systemPrompt, model? }` |
-| `/api/parse-product` | POST | multipart/form-data，解析产品文档，返回结构化产品信息 JSON |
+| `/api/parse-product` | POST | multipart/form-data，支持多文件批量上传，解析产品文档，返回结构化产品信息 JSON（含医美锚定建议字段） |
 | `/api/fetch-video` | POST | 解析抖音视频，body: `{ shareUrl }` |
 | `/api/transcribe/upload` | POST | 下载视频 → 上传 OSS → 提交 ASR，返回 `{ taskId }` |
 | `/api/transcribe/poll` | POST | 轮询 ASR 结果，body: `{ taskId }` |
-| `/api/personas` | GET | 返回达人列表及档案 |
+| `/api/personas` | GET | 返回本地 `data/personas/` 下的达人列表及档案（前端实际调用 `/material-library/api/personas`） |
 | `/api/personas/references` | POST/DELETE | 素材库管理 |
 
-> **注意**：`page.tsx` 中达人列表调用 `/material-library/api/personas`，需配合 material-library 服务部署。
+> **注意**：`page.tsx` 中达人列表实际调用 `/material-library/api/personas`，本地 `/api/personas` 接口存在但前端未使用，需配合 material-library 服务部署。
 
 ## 6. 环境变量
 
@@ -123,7 +124,8 @@ npm install && npm run dev
 
 - **完成度**：核心四步流程完整，已上线
 - **已知问题**：
-  - 达人列表跨服务调用，单独部署需调整源码
+  - 达人列表跨服务调用 `/material-library/api/personas`，本地 `/api/personas` 存在但前端未使用，单独部署需调整源码
+  - `parse-product` API 返回 `medicalAestheticAnchor` 字段，但前端未展示
   - OSS Bucket 硬编码，更换需改代码
   - `data/personas/` 目录需手动维护，不支持在线创建达人
   - 无身份验证
@@ -133,14 +135,15 @@ npm install && npm run dev
 | 步骤 | 测试项 | 操作说明 | 预期结果 | 状态 |
 |------|--------|----------|----------|------|
 | Step 1 | 达人列表加载 | 进入页面查看下拉列表 | 显示所有可用达人 | ⬜ |
-| Step 2 | 上传产品文档 | 上传 PDF / Word 文件 | AI 返回结构化产品信息 | ⬜ |
+| Step 2 | 上传产品文档 | 上传 PDF / Word 文件（支持多文件） | AI 返回结构化产品信息 | ⬜ |
 | Step 2 | 卖点提炼对话 | 查看 AI 提炼的卖点 | 按背书-机制-种草逻辑输出 3 个卖点 | ⬜ |
 | Step 2 | 采用卖点 | 点击「采用卖点到表单」 | 卖点写入表单，进入 Step 3 | ⬜ |
 | Step 3 | 视频链接转录 | 输入抖音分享链接 | 自动转录并返回完整文案 | ⬜ |
 | Step 3 | 手动粘贴文案 | 直接粘贴文案后确认 | 触发 AI 开头提取 | ⬜ |
 | Step 3 | 开头提取 | 查看 AI 提取结果 | 显示开头文本及类型标注 | ⬜ |
 | Step 4 | 脚本生成 | 自动生成 | AI 流式输出完整千川脚本 | ⬜ |
-| Step 4 | 字数校验 | 查看字数提示 | 超标时自动触发压缩 | ⬜ |
+| Step 4 | 字数校验 | 查看字数提示 | 超标时自动触发压缩（原视频字数或默认350字为上限） | ⬜ |
+| Step 4 | 原创度自检 | 查看脚本生成结果 | 逐段对比对标原文，标注高相似句子 | ⬜ |
 | Step 4 | 多轮迭代 | 追加修改意见 | AI 按要求修改脚本 | ⬜ |
 | Step 4 | 导出终稿 | 点击「导出终稿」 | 内容复制到剪贴板 | ⬜ |
 
@@ -148,4 +151,5 @@ npm install && npm run dev
 
 ## 10. 文档更新说明
 
+- **2026-05-15**：对照代码更新 README，修正达人列表来源说明、补充多文件上传 / 原创度自检 / 医美锚定字段 / 字数校验逻辑等描述，修正目录结构
 - **2026-04-23**：初次创建 README，基于当前代码整理
