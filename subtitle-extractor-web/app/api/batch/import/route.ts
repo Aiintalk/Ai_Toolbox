@@ -68,23 +68,60 @@ async function processItem(jobId: string, item: BatchItem): Promise<void> {
   }
 }
 
-const CONCURRENCY = 5; // 最多同时处理 5 条
+const SUBMIT_CONCURRENCY = 8; // 并发提交（TikHub + ASR submit）
 
 async function processBatchJob(jobId: string, items: BatchItem[]): Promise<void> {
-  updateJob(jobId, { phase: "解析视频中" });
+  // ── 阶段一：并发解析视频 + 提交 ASR ────────────────────────────
+  updateJob(jobId, { phase: "提交转写任务中" });
 
-  // 并发处理，控制最大并发数为 CONCURRENCY
-  const queue = [...items];
-  async function worker() {
-    while (queue.length > 0) {
-      const item = queue.shift();
+  const taskMap = new Map<number, string>(); // rowNumber → ASR taskId
+
+  const submitQueue = [...items];
+  async function submitWorker() {
+    while (submitQueue.length > 0) {
+      const item = submitQueue.shift();
       if (!item) break;
-      await processItem(jobId, item);
+      updateItem(jobId, item.rowNumber, { status: "processing" });
+      try {
+        const videoInfo = await fetchVideoByShareUrl(item.originalUrl);
+        updateItem(jobId, item.rowNumber, { title: videoInfo.title });
+        if (!videoInfo.audioUrl) throw new Error("未获取到音频地址");
+        const taskId = await submitTranscription(videoInfo.audioUrl);
+        taskMap.set(item.rowNumber, taskId);
+      } catch (err) {
+        updateItem(jobId, item.rowNumber, {
+          status: "failed",
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
 
-  const workers = Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker);
-  await Promise.all(workers);
+  const submitWorkers = Array.from(
+    { length: Math.min(SUBMIT_CONCURRENCY, items.length) },
+    submitWorker
+  );
+  await Promise.all(submitWorkers);
+
+  // ── 阶段二：所有已提交任务同时轮询（Aliyun 并行处理）────────────
+  updateJob(jobId, { phase: "转写中" });
+
+  const pollTargets = items.filter((item) => taskMap.has(item.rowNumber));
+
+  await Promise.all(
+    pollTargets.map(async (item) => {
+      const taskId = taskMap.get(item.rowNumber)!;
+      try {
+        const transcript = await pollUntilDone(taskId);
+        updateItem(jobId, item.rowNumber, { transcript, status: "success", error: "" });
+      } catch (err) {
+        updateItem(jobId, item.rowNumber, {
+          status: "failed",
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })
+  );
 
   updateJob(jobId, { status: "completed", phase: "已完成" });
 }
