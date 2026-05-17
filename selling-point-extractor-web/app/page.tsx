@@ -180,6 +180,23 @@ interface UploadedFile {
   text: string
 }
 
+interface HistoryItem {
+  id: string
+  productName: string
+  createdAt: string
+  summary: string
+}
+
+interface HistoryRecord {
+  id: string
+  productName: string
+  result: string
+  chatHistory: Array<{ role: string; content: string }>
+  briefFiles: UploadedFile[]
+  scriptFiles: UploadedFile[]
+  createdAt: string
+}
+
 function SimpleMarkdown({ text }: { text: string }) {
   const html = text
     .replace(/### (.*)/g, '<h3 class="text-xl font-bold mt-8 mb-3 text-gray-800">$1</h3>')
@@ -188,6 +205,18 @@ function SimpleMarkdown({ text }: { text: string }) {
     .replace(/\n- /g, '<br/>• ')
     .replace(/\n/g, '<br/>')
   return <div className="prose max-w-none text-[15px] leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: `<p class="mb-3">${html}</p>` }} />
+}
+
+// 从分析结果中提取产品名称
+function extractProductName(result: string): string {
+  // 尝试从资料概览中提取
+  const overviewMatch = result.match(/资料概览[\s\S]*?\n([\s\S]*?)(?:\n---|\n###)/)
+  if (overviewMatch) {
+    const text = overviewMatch[1].replace(/<[^>]+>/g, '').trim()
+    // 取前 20 个字作为产品名
+    if (text.length > 0) return text.slice(0, 20) + (text.length > 20 ? '...' : '')
+  }
+  return '未命名产品'
 }
 
 export default function Home() {
@@ -209,6 +238,76 @@ export default function Home() {
   const [followUpLoading, setFollowUpLoading] = useState(false)
   const briefRef = useRef<HTMLInputElement>(null)
   const scriptRef = useRef<HTMLInputElement>(null)
+
+  // History
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  async function loadHistory() {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch(`${BASE}/api/history`)
+      const data = await res.json()
+      setHistoryList(data.records || [])
+    } catch {
+      setHistoryList([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  async function loadHistoryRecord(id: string) {
+    try {
+      const res = await fetch(`${BASE}/api/history?id=${id}`)
+      const data = await res.json()
+      if (data.record) {
+        const record: HistoryRecord = data.record
+        setResult(record.result)
+        setChatHistory(record.chatHistory || [])
+        setBriefFiles(record.briefFiles || [])
+        setScriptFiles(record.scriptFiles || [])
+        setFollowUpResult('')
+        setFollowUp('')
+        setShowHistory(false)
+        setStep(3)
+      }
+    } catch {
+      setError('加载历史记录失败')
+    }
+  }
+
+  async function deleteHistory(id: string) {
+    try {
+      await fetch(`${BASE}/api/history?id=${id}`, { method: 'DELETE' })
+      setHistoryList(prev => prev.filter(h => h.id !== id))
+    } catch {
+      setError('删除失败')
+    }
+  }
+
+  async function saveHistory(analysisResult: string, history: Array<{ role: string; content: string }>) {
+    try {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+      const productName = extractProductName(analysisResult)
+      await fetch(`${BASE}/api/history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          productName,
+          result: analysisResult,
+          chatHistory: history,
+          briefFiles,
+          scriptFiles,
+          createdAt: new Date().toISOString(),
+        }),
+      })
+    } catch {
+      // 保存失败静默处理，不影响主流程
+      console.error('Failed to save history')
+    }
+  }
 
   async function handleFilesUpload(files: FileList, type: 'brief' | 'script') {
     const setter = type === 'brief' ? setBriefFiles : setScriptFiles
@@ -285,7 +384,10 @@ export default function Home() {
         full += decoder.decode(value, { stream: true })
         setResult(full)
       }
-      setChatHistory([{ role: 'user', content: userMsg }, { role: 'assistant', content: full }])
+      const finalHistory = [{ role: 'user', content: userMsg }, { role: 'assistant', content: full }]
+      setChatHistory(finalHistory)
+      // 自动保存历史记录
+      await saveHistory(full, finalHistory)
     } catch (e) {
       setError('分析失败，请重试')
     } finally {
@@ -293,11 +395,22 @@ export default function Home() {
     }
   }
 
+  // Token 裁剪：保留第 1 条 user message + 最后 8 条消息
+  function trimMessages(msgs: Array<{ role: string; content: string }>) {
+    if (msgs.length <= 10) return msgs
+    const first = msgs[0]
+    const last8 = msgs.slice(-8)
+    // 如果 first 已经在 last8 中（不太可能但安全起见），直接返回 last8
+    if (last8.includes(first)) return last8
+    return [first, ...last8]
+  }
+
   async function handleFollowUp() {
     if (!followUp.trim() || !chatHistory.length) return
     setFollowUpLoading(true)
     setFollowUpResult('')
-    const messages = [...chatHistory, { role: 'user', content: followUp }]
+    const allMessages = [...chatHistory, { role: 'user', content: followUp }]
+    const messages = trimMessages(allMessages)
     try {
       const res = await fetch(`${BASE}/api/chat`, {
         method: 'POST',
@@ -314,7 +427,7 @@ export default function Home() {
         full += decoder.decode(value, { stream: true })
         setFollowUpResult(full)
       }
-      setChatHistory([...messages, { role: 'assistant', content: full }])
+      setChatHistory([...allMessages, { role: 'assistant', content: full }])
       setFollowUp('')
     } catch (e) {
       setError('追问失败，请重试')
@@ -387,18 +500,67 @@ export default function Home() {
           </div>
         )}
 
+        {/* ====== History Modal ====== */}
+        {showHistory && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowHistory(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <span>📋</span> 历史记录
+                </h2>
+                <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600 text-xl transition">✕</button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {historyLoading ? (
+                  <div className="text-center py-12 text-gray-400">加载中...</div>
+                ) : historyList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">暂无历史记录</div>
+                ) : (
+                  <div className="space-y-3">
+                    {historyList.map(item => (
+                      <div key={item.id} className="border border-orange-100 rounded-xl p-4 hover:bg-orange-50/50 transition group">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadHistoryRecord(item.id)}>
+                            <h3 className="font-semibold text-gray-800 text-sm truncate">{item.productName}</h3>
+                            <p className="text-xs text-gray-400 mt-1">{new Date(item.createdAt).toLocaleString('zh-CN')}</p>
+                            <p className="text-xs text-gray-500 mt-2 line-clamp-2">{item.summary}</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteHistory(item.id) }}
+                            className="text-gray-300 hover:text-red-500 transition text-sm shrink-0 opacity-0 group-hover:opacity-100"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ====== Step 1: Upload Brief ====== */}
         {step === 1 && (
           <div className="bg-white rounded-2xl border border-orange-100 p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">📄</span>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">上传产品Brief</h2>
-                <p className="text-sm text-gray-400 mt-0.5">支持 PDF、Word、TXT 格式，可上传多个文件</p>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">📄</span>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">上传产品Brief</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">支持 PDF、Word、TXT 格式，可上传多个文件</p>
+                </div>
               </div>
+              <button
+                onClick={() => { setShowHistory(true); loadHistory() }}
+                className="text-sm text-orange-500 hover:text-orange-600 border border-orange-200 rounded-lg px-4 py-2 hover:bg-orange-50 transition flex items-center gap-1.5"
+              >
+                <span>📋</span> 历史记录
+              </button>
             </div>
 
-            <input ref={briefRef} type="file" accept=".pdf,.docx,.doc,.txt,.md" multiple className="hidden"
+            <input ref={briefRef} type="file" accept=".pdf,.docx,.doc,.txt,.md,.pages" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) handleFilesUpload(e.target.files, 'brief') }} />
 
             {briefFiles.length > 0 && (
@@ -456,7 +618,7 @@ export default function Home() {
               </div>
             )}
 
-            <input ref={scriptRef} type="file" accept=".pdf,.docx,.doc,.txt,.md" multiple className="hidden"
+            <input ref={scriptRef} type="file" accept=".pdf,.docx,.doc,.txt,.md,.pages" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) handleFilesUpload(e.target.files, 'script') }} />
 
             {scriptFiles.length > 0 && (
@@ -551,7 +713,8 @@ export default function Home() {
 
             {result && !loading && (
               <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6">
-                <h3 className="text-sm font-semibold text-gray-600 mb-4">继续追问</h3>
+                <h3 className="text-sm font-semibold text-gray-600 mb-1">和 AI 聊聊</h3>
+                <p className="text-xs text-gray-400 mb-4">对卖点分析有疑问或不满意？在这里和 AI 讨论调整，满意后再保存卖点卡</p>
                 <div className="flex gap-3">
                   <input type="text"
                     className="flex-1 border border-gray-200 rounded-xl px-5 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
@@ -575,10 +738,50 @@ export default function Home() {
             )}
 
             {result && !loading && (
-              <div className="text-center">
-                <button onClick={handleReset} className="text-sm text-gray-400 hover:text-orange-500 transition">
-                  重新开始分析新产品
-                </button>
+              <div className="space-y-4">
+                {(() => {
+                  // Use followUpResult if available (user refined via chat), otherwise use original result
+                  const source = followUpResult || result
+                  const cardMatch = source.match(/(?:##\s*)?🔥\s*极致卖点卡([\s\S]*?)(?=(?:##\s*)?💡\s*AI|$)/)
+                  const aiMatch = source.match(/(?:##\s*)?💡\s*AI补充建议[\s\S]*$/)
+                  const cardContent = cardMatch ? ('## 🔥 极致卖点卡' + cardMatch[1]).trim() : ''
+                  const fullCard = cardContent + (aiMatch ? '\n\n' + aiMatch[0] : '')
+                  if (!fullCard) return null
+                  return (
+                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border-2 border-orange-200 p-8 shadow-sm">
+                      <div className="flex items-center justify-between mb-5">
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                          <span>🔥</span> 最终卖点卡
+                        </h2>
+                        <div className="flex gap-2">
+                          <button onClick={() => { navigator.clipboard.writeText(fullCard); }}
+                            className="text-sm text-orange-600 hover:text-orange-700 border border-orange-300 rounded-lg px-4 py-2 hover:bg-orange-100 transition font-medium">
+                            复制卖点卡
+                          </button>
+                          <button onClick={() => {
+                            const blob = new Blob([fullCard], { type: 'text/markdown;charset=utf-8' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = '极致卖点卡.md'
+                            a.click()
+                            URL.revokeObjectURL(url)
+                          }}
+                            className="text-sm text-white bg-orange-500 hover:bg-orange-600 rounded-lg px-4 py-2 transition font-medium shadow-sm">
+                            保存到电脑
+                          </button>
+                        </div>
+                      </div>
+                      <SimpleMarkdown text={fullCard} />
+                    </div>
+                  )
+                })()}
+
+                <div className="text-center">
+                  <button onClick={handleReset} className="text-sm text-gray-400 hover:text-orange-500 transition">
+                    重新开始分析新产品
+                  </button>
+                </div>
               </div>
             )}
           </div>
