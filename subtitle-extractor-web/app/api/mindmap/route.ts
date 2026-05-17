@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const raw = await chatComplete(
       [{ role: "user", content: transcript }],
       MINDMAP_SYSTEM_PROMPT,
-      "deepseek-v4-flash"
+      "claude-haiku-4-5-20251001"
     );
 
     // Strip potential markdown code fences

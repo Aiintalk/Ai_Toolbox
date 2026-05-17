@@ -100,7 +100,7 @@ export function chatStream(
 export async function chatComplete(
   messages: ChatMessage[],
   systemPrompt: string,
-  model: string = "deepseek-v4-flash"
+  model: string = "claude-haiku-4-5-20251001"
 ): Promise<string> {
   const allMessages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
