@@ -17,12 +17,18 @@ interface SubDetail {
   report?: string
 }
 
+type SortOrder = 'newest' | 'oldest'
+type FilterMode = 'all' | 'complete' | 'partial'
+
 export default function AdminPage() {
   const [subs, setSubs] = useState<SubSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState<SubDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'answers' | 'report'>('answers')
+  const [search, setSearch] = useState('')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+  const [filterMode, setFilterMode] = useState<FilterMode>('all')
 
   const fetchList = async () => {
     setLoading(true)
@@ -34,6 +40,19 @@ export default function AdminPage() {
   }
 
   useEffect(() => { fetchList() }, [])
+
+  const filteredSubs = subs
+    .filter(s => {
+      if (search && !s.nickname.toLowerCase().includes(search.toLowerCase())) return false
+      if (filterMode === 'complete' && s.answerCount < 20) return false
+      if (filterMode === 'partial' && s.answerCount >= 20) return false
+      return true
+    })
+    .sort((a, b) => {
+      const da = new Date(a.submittedAt).getTime()
+      const db = new Date(b.submittedAt).getTime()
+      return sortOrder === 'newest' ? db - da : da - db
+    })
 
   const viewDetail = async (id: string) => {
     setDetailLoading(true)
@@ -108,6 +127,34 @@ export default function AdminPage() {
           </div>
         ) : (
           <>
+            {/* 搜索 + 筛选栏 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
+              <input
+                type="text"
+                placeholder="搜索昵称..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="flex-1 min-w-[160px] px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200 transition"
+              />
+              <select
+                value={sortOrder}
+                onChange={e => setSortOrder(e.target.value as SortOrder)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-purple-400 bg-white cursor-pointer"
+              >
+                <option value="newest">最新提交</option>
+                <option value="oldest">最早提交</option>
+              </select>
+              <select
+                value={filterMode}
+                onChange={e => setFilterMode(e.target.value as FilterMode)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-purple-400 bg-white cursor-pointer"
+              >
+                <option value="all">全部</option>
+                <option value="complete">填写完整</option>
+                <option value="partial">部分填写</option>
+              </select>
+            </div>
+
             {loading ? (
               <div className="text-center text-gray-400 py-20">加载中...</div>
             ) : subs.length === 0 ? (
@@ -116,13 +163,27 @@ export default function AdminPage() {
                 <div className="text-gray-400">暂无提交记录</div>
                 <div className="text-xs text-gray-300 mt-2">将采集链接发给红人后，提交的信息会显示在这里</div>
               </div>
+            ) : filteredSubs.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-4xl mb-4">🔍</div>
+                <div className="text-gray-400">没有匹配的记录</div>
+                <div className="text-xs text-gray-300 mt-2">试试调整搜索条件或筛选项</div>
+              </div>
             ) : (
               <div className="space-y-3">
-                {subs.map(s => (
+                <div className="text-xs text-gray-400 px-1">共 {filteredSubs.length} 条{filteredSubs.length !== subs.length ? `（共 ${subs.length} 条）` : ''}</div>
+                {filteredSubs.map(s => (
                   <div key={s.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:shadow-sm transition cursor-pointer"
                     onClick={() => viewDetail(s.id)}>
                     <div>
-                      <div className="font-medium">{s.nickname}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {s.nickname}
+                        {s.answerCount >= 20 ? (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-50 text-green-600 font-normal">完整</span>
+                        ) : (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 font-normal">部分</span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-400 mt-1">{s.submittedAt} · 填写了 {s.answerCount} 题</div>
                     </div>
                     <div className="flex items-center gap-3">
