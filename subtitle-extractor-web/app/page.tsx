@@ -496,37 +496,50 @@ export default function Home() {
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleBatchImport(f); e.target.value = '' }} />
 
-          {/* Upload row */}
-          <div className="flex gap-2 items-stretch max-[640px]:flex-col">
-            <div
-              className={`flex-1 flex items-center min-h-[40px] px-3 rounded-lg border text-sm cursor-pointer select-none transition-colors ${
-                isDragging  ? 'border-blue-400 bg-blue-50' :
-                batchBusy   ? 'border-dashed border-gray-300 bg-gray-50 opacity-60 cursor-not-allowed' :
-                              'border-dashed border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
-              }`}
-              onClick={() => !batchBusy && fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={e => { if (!batchBusy) handleDrop(e) }}
-            >
-              {loading === 'batch'
-                ? <span className="flex items-center gap-2 text-blue-600"><Spinner /> 上传中...</span>
-                : <span className="text-gray-500"><strong className="text-blue-600 font-medium">选择 Excel 文件</strong>，或拖拽文件到这里</span>
-              }
-            </div>
+          {/* Large drag area */}
+          <div
+            className={`flex flex-col items-center justify-center gap-3 h-36 rounded-xl border-2 border-dashed text-sm cursor-pointer select-none transition-colors ${
+              isDragging ? 'border-blue-400 bg-blue-50' :
+              batchBusy  ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed' :
+                           'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+            }`}
+            onClick={() => !batchBusy && fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={e => { if (!batchBusy) handleDrop(e) }}
+          >
+            {loading === 'batch' ? (
+              <span className="flex items-center gap-2 text-blue-600"><Spinner /> 上传中...</span>
+            ) : (
+              <>
+                <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-gray-500">
+                  拖拽 Excel 文件到这里，或 <strong className="text-blue-600 font-medium">点击选择文件</strong>
+                </span>
+                <span className="text-xs text-gray-400">支持 .xlsx / .xls，A 列为链接，最多 200 条</span>
+              </>
+            )}
+          </div>
+
+          {/* Controls row */}
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+                checked={autoDownload}
+                onChange={e => setAutoDownload(e.target.checked)}
+              />
+              完成后自动下载结果
+            </label>
             <button
-              className="px-4 h-10 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+              className="px-5 h-10 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               disabled={batchBusy}
-              onClick={() => { setAutoDownload(false); fileInputRef.current?.click() }}
+              onClick={() => fileInputRef.current?.click()}
             >
               导入并转字幕
-            </button>
-            <button
-              className="px-4 h-10 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-              disabled={batchBusy}
-              onClick={() => { setAutoDownload(true); fileInputRef.current?.click() }}
-            >
-              上传并自动下载
             </button>
           </div>
 
