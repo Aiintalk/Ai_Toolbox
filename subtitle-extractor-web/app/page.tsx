@@ -304,7 +304,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="bg-white border-b px-6 py-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <h1 className="text-lg font-bold text-gray-900">短视频字幕提取工具</h1>
           <p className="text-xs text-gray-400 mt-0.5">粘贴抖音链接，自动提取字幕文案 · 支持批量 Excel 导入</p>
         </div>
@@ -312,7 +312,7 @@ export default function Home() {
 
       {/* Error */}
       {error && (
-        <div className="max-w-5xl mx-auto px-6 mt-4">
+        <div className="max-w-[1400px] mx-auto px-6 mt-4">
           <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             <span>{error}</span>
             <button className="ml-4 underline shrink-0 cursor-pointer" onClick={() => setError('')}>关闭</button>
@@ -320,7 +320,7 @@ export default function Home() {
         </div>
       )}
 
-      <main className="max-w-5xl mx-auto p-6 space-y-4">
+      <main className="max-w-[1400px] mx-auto p-6 space-y-4">
 
         {/* ── 单条提取 ── */}
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
@@ -347,7 +347,7 @@ export default function Home() {
 
           {/* Result: cover + content */}
           {videoInfo && (
-            <div className="grid grid-cols-[360px_1fr] gap-5 pt-2 max-[900px]:grid-cols-1">
+            <div className="grid grid-cols-[minmax(280px,360px)_1fr] gap-5 pt-2 max-[900px]:grid-cols-1">
 
               {/* Cover */}
               <div className="relative min-h-[480px] rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
