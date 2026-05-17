@@ -68,8 +68,8 @@ async function processItem(jobId: string, item: BatchItem): Promise<void> {
   }
 }
 
-const TIKHUB_CONCURRENCY = 5;  // TikHub 解析并发数
-const ASR_CONCURRENCY = 2;     // 阿里云 ASR 提交并发数（试用版2路）
+const TIKHUB_CONCURRENCY = 10; // TikHub 解析并发数
+const ASR_CONCURRENCY = 10;    // 阿里云 ASR 提交并发数（商用版）
 
 async function processBatchJob(jobId: string, items: BatchItem[]): Promise<void> {
   // ── 阶段一：并发解析视频信息（TikHub）────────────────────────────
