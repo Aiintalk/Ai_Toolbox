@@ -68,12 +68,23 @@ async function processItem(jobId: string, item: BatchItem): Promise<void> {
   }
 }
 
+const CONCURRENCY = 5; // 最多同时处理 5 条
+
 async function processBatchJob(jobId: string, items: BatchItem[]): Promise<void> {
   updateJob(jobId, { phase: "解析视频中" });
 
-  for (const item of items) {
-    await processItem(jobId, item);
+  // 并发处理，控制最大并发数为 CONCURRENCY
+  const queue = [...items];
+  async function worker() {
+    while (queue.length > 0) {
+      const item = queue.shift();
+      if (!item) break;
+      await processItem(jobId, item);
+    }
   }
+
+  const workers = Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker);
+  await Promise.all(workers);
 
   updateJob(jobId, { status: "completed", phase: "已完成" });
 }
