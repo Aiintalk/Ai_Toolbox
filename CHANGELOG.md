@@ -4,65 +4,61 @@
 
 ---
 
-## 2026-04-27 (PR5)
+## v1.5.0 - 2026-05-16
 
-### kol-portal 工具入口扩展 + 本地开发反代
-- `kol-portal` v1.0.0 → v1.1.0：工具入口扩到 7 个（分 3 组），全部带 `?persona=` 参数
-- 修复 `kol-portal` 消费 `@ai-toolbox/auth-shared` 的依赖解析问题（jose 找不到）
-- `packages/auth-shared` 显式声明 jose / next 为 devDependencies，需在该目录执行一次 npm install
-- 新增 `scripts/local-proxy.mjs` 本地反代脚本，监听 8080，模拟生产 nginx 路径分发
-- 7 个子应用 dev 端口固化（3001-3007），方便反代
+### Added
+- 新增根目录 `AI工具箱开发文档.md`：完整架构说明、14 个服务清单、环境变量矩阵、API 路由清单、数据存储说明、部署操作手册、Nginx 配置参考
 
----
-
-## 2026-04-26 (PR3)
-
-### kol-intake / material-library 用户隔离 + 进度 API
-- `kol-intake` v2.0.0 → v2.1.0：接入登录、kol 数据隔离、新增 `/api/progress`、提交改为一人一份+部分覆盖、前端「已有提交」提示
-- `material-library` v2.0.0 → v2.1.0：接入登录、kol 只能看 / 改自己 username 对应的 persona、新增 `/api/progress`（8 项完成度）、前端 kol 自动选 persona 隐藏切换器
-- 两个模块均依赖 `JWT_SECRET`（与 auth-service 一致），共享接口对 persona-writer / qianchuan-writer / seeding-writer 行为兼容
+### Changed
+- 更新 `portal` 导航页：补全 14 个工具的入口卡片
 
 ---
 
-## 2026-04-25 (PR2)
+## v1.4.0 - 2026-05-12
 
-### portal 接入登录系统
-- `portal` v1.1.1 → v1.2.0：页面加载校验登录态，未登录跳 `/auth/login`，role=kol 跳 `/kol-portal/`
-- 顶栏新增用户名展示 + 退出登录按钮
-- 本次仅前端兜底，后端 nginx auth_request 守卫由运维侧手动配置（不纳入仓库管理）
-
----
-
-## 2026-04-25
-
-### 新增模块
-- `auth-service` v1.0.0 — 统一登录与用户管理服务（地基 PR）
-  - Next.js 14 + SQLite + JWT (HttpOnly Cookie) + bcrypt
-  - 三种角色：admin / employee / kol
-  - 登录页 `/auth/login`，按 role 跳转到对应 portal
-  - 管理后台 `/auth/admin`，支持新增 / 改角色 / 重置密码 / 删除用户
-  - 预留 `/api/verify` 接口，供 nginx `auth_request` 模块做路由守卫
-  - CLI 脚本：`init-db`（建表 + 种 darenshuo + admin）、`user:add`
-
-### 后续计划（网红版工具箱）
-- PR2：nginx 加 auth_request 守卫；员工 portal 加登录跳转
-- PR3：kol-intake / material-library 加用户隔离 + 进度 API + 修改功能
-- PR4：新建网红 portal（kol-portal，含进度卡片）
+### Added
+- `qianchuan-review-web`：千川脚本复盘工具上线（端口 3012）
+- `qianchuan-collection-web`：千川素材收集工具上线（端口 3015）
+- `livestream-writer-web`：直播脚本仿写工具上线（端口 3013）
+- `livestream-review-web`：直播复盘工具上线（端口 3014）
 
 ---
 
-## 2026-04-19
+## v1.3.0 - 2026-05-11
 
-### 上线
-- `portal` 导航页正常运行，已上线 2 个工具入口
-- `benchmark-analyzer` 对标分析助手已上线
-- `persona-writer-web` 人设脚本仿写助手已上线
+### Added
+- `selling-point-extractor-web`：产品卖点提取器上线（端口 3011），支持文件上传解析与多轮 AI 追问
 
-### 已开发待接入
-- `qianchuan-writer-web` 千川脚本仿写助手开发完成，Portal 导航页待接入
-- `seeding-writer-web` 种草内容仿写助手开发完成，Portal 导航页待接入
+---
 
-### 文档
-- 新增根目录 `README.md`、`GIT_WORKFLOW.md`
-- 新增各子项目 `README.md` 和 `CHANGELOG.md`
-- 统一 Git 分支命名规范、版本号管理规则
+## v1.2.0 - 2026-04-28
+
+### Added
+- `persona-review-web`：人设脚本复盘工具上线（端口 3010）
+
+---
+
+## v1.1.0 - 2026-04-27
+
+### Added
+- `tiktok-writer-web`：TikTok 平台脚本仿写工具上线（端口 3009），支持导出 Word
+
+---
+
+## v1.0.0 - 2026-04-19
+
+### Added
+首批工具上线，完成项目基础搭建：
+
+- `persona-writer-web`：人设脚本仿写助手（端口 3001）
+- `seeding-writer-web`：种草脚本仿写助手（端口 3003）
+- `persona-positioning-web`：人设定位 / 对标分析（端口 3004 + 3006，同源双路由）
+- `qianchuan-writer-web`：千川脚本仿写助手（端口 3005）
+- `kol-intake-web`：红人信息采集（端口 3007）
+- `material-library-web`：素材库（端口 3008）
+- `portal`：静态 HTML 导航门户
+
+### Notes
+- 技术栈确定：Next.js 14 + TypeScript + TailwindCSS + PM2 + Nginx
+- 外部依赖接入：云雾 AI（大模型）、TikHub（抖音数据）、阿里云 OSS + ASR（视频转录）
+- 数据存储方案确定：文件系统（JSON + Markdown），无数据库
