@@ -304,9 +304,17 @@ export default function Home() {
 
       {/* Header */}
       <header className="bg-white border-b px-6 py-4">
-        <div className="max-w-[1400px] mx-auto">
-          <h1 className="text-lg font-bold text-gray-900">短视频字幕提取工具</h1>
-          <p className="text-xs text-gray-400 mt-0.5">粘贴抖音链接，自动提取字幕文案 · 支持批量 Excel 导入</p>
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">短视频字幕提取工具</h1>
+            <p className="text-xs text-gray-400 mt-0.5">粘贴抖音链接，自动提取字幕文案 · 支持批量 Excel 导入</p>
+          </div>
+          <a
+            href="http://121.40.174.53/"
+            className="flex items-center gap-1.5 px-3 h-8 border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            ← 返回主页
+          </a>
         </div>
       </header>
 
@@ -496,32 +504,95 @@ export default function Home() {
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleBatchImport(f); e.target.value = '' }} />
 
-          {/* Large drag area */}
-          <div
-            className={`flex flex-col items-center justify-center gap-3 h-36 rounded-xl border-2 border-dashed text-sm cursor-pointer select-none transition-colors ${
-              isDragging ? 'border-blue-400 bg-blue-50' :
-              batchBusy  ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed' :
-                           'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
-            }`}
-            onClick={() => !batchBusy && fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={e => { if (!batchBusy) handleDrop(e) }}
-          >
-            {loading === 'batch' ? (
-              <span className="flex items-center gap-2 text-blue-600"><Spinner /> 上传中...</span>
-            ) : (
-              <>
-                <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="text-gray-500">
-                  拖拽 Excel 文件到这里，或 <strong className="text-blue-600 font-medium">点击选择文件</strong>
-                </span>
-                <span className="text-xs text-gray-400">支持 .xlsx / .xls，A 列为链接，最多 200 条</span>
-              </>
-            )}
-          </div>
+          {/* Upload / Progress area */}
+          {batchStatus === 'idle' && loading !== 'batch' ? (
+            /* Drag area — shown when idle */
+            <div
+              className={`flex flex-col items-center justify-center gap-3 h-36 rounded-xl border-2 border-dashed text-sm cursor-pointer select-none transition-colors ${
+                isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-gray-500">
+                拖拽 Excel 文件到这里，或 <strong className="text-blue-600 font-medium">点击选择文件</strong>
+              </span>
+              <span className="text-xs text-gray-400">支持 .xlsx / .xls，A 列为链接，最多 200 条</span>
+            </div>
+          ) : (
+            /* Progress area — shown while uploading / processing / done */
+            <div className="h-36 rounded-xl border-2 border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-3 px-6">
+              {loading === 'batch' ? (
+                <span className="flex items-center gap-2 text-blue-600 text-sm"><Spinner /> 上传中...</span>
+              ) : (
+                <>
+                  {/* Status + phase */}
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    {batchStatus === 'processing' && <span className="flex items-center gap-1.5 text-blue-600"><Spinner />{batchPhase || '处理中'}</span>}
+                    {batchStatus === 'completed'  && <span className="text-green-600">✓ 已完成</span>}
+                    {batchStatus === 'failed'     && <span className="text-red-500">✗ 处理失败</span>}
+                  </div>
+
+                  {/* Counts */}
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <span>共 <strong className="text-gray-800">{batchTotal}</strong> 条</span>
+                    <span>成功 <strong className="text-green-600">{batchSuccess}</strong></span>
+                    <span>失败 <strong className="text-red-500">{batchFailed}</strong></span>
+                  </div>
+
+                  {/* Progress bar */}
+                  {batchStatus === 'processing' && batchTotal > 0 && (
+                    <div className="w-64 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.round((batchSuccess + batchFailed) / batchTotal * 100)}%` }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 items-center flex-wrap justify-center">
+                    {batchStatus === 'processing' && (
+                      <button
+                        className="px-3 h-7 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => navigator.clipboard.writeText(batchAccessCode).then(() => showToast('已复制访问码'))}
+                      >
+                        复制访问码
+                      </button>
+                    )}
+                    {(batchStatus === 'completed' || batchStatus === 'failed') && (
+                      <>
+                        <span className="text-xs text-gray-400 font-mono">{batchAccessCode}</span>
+                        <button
+                          className="px-3 h-7 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => navigator.clipboard.writeText(batchAccessCode).then(() => showToast('已复制访问码'))}
+                        >
+                          复制访问码
+                        </button>
+                        <button
+                          className="px-3 h-7 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 cursor-pointer"
+                          onClick={() => triggerDownload(batchAccessCode)}
+                        >
+                          下载结果
+                        </button>
+                        <button
+                          className="px-3 h-7 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => { setBatchStatus('idle'); setBatchJobId(''); setBatchAccessCode(''); saveActiveBatch(null) }}
+                        >
+                          新任务
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Controls row */}
           <div className="flex items-center justify-between gap-3">
@@ -542,61 +613,6 @@ export default function Home() {
               导入并转字幕
             </button>
           </div>
-
-          {/* Active batch job */}
-          {batchStatus !== 'idle' && (
-            <div className="p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
-              <div className="space-y-1.5 min-w-0">
-                <div className="text-sm font-mono font-medium text-gray-800">{batchAccessCode}</div>
-                <div className="flex flex-wrap gap-2 text-xs text-gray-500 items-center">
-                  {batchStatus === 'processing' && (
-                    <span className="flex items-center gap-1 text-blue-600"><Spinner />{batchPhase || '处理中'}</span>
-                  )}
-                  {batchStatus === 'completed' && <span className="text-green-600">已完成</span>}
-                  {batchStatus === 'failed'    && <span className="text-red-500">失败</span>}
-                  <span>共 {batchTotal} 条</span>
-                  {batchStatus === 'processing' && <span>已处理 {batchSuccess + batchFailed} 条</span>}
-                  {(batchStatus === 'completed' || batchStatus === 'failed') && (
-                    <span>成功 {batchSuccess} / 失败 {batchFailed}</span>
-                  )}
-                </div>
-                {batchStatus === 'processing' && batchTotal > 0 && (
-                  <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.round((batchSuccess + batchFailed) / batchTotal * 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {batchStatus === 'processing' && (
-                  <button
-                    className="px-3 h-8 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigator.clipboard.writeText(batchAccessCode).then(() => showToast('已复制访问码'))}
-                  >
-                    复制访问码
-                  </button>
-                )}
-                {(batchStatus === 'completed' || batchStatus === 'failed') && (
-                  <>
-                    <button
-                      className="px-3 h-8 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 cursor-pointer"
-                      onClick={() => triggerDownload(batchAccessCode)}
-                    >
-                      下载结果
-                    </button>
-                    <button
-                      className="px-3 h-8 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => { setBatchStatus('idle'); setBatchJobId(''); setBatchAccessCode(''); saveActiveBatch(null) }}
-                    >
-                      新任务
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Query result */}
           {queryResult && batchStatus === 'idle' && (
