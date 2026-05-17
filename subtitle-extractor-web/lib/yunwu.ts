@@ -121,7 +121,7 @@ export async function chatComplete(
         stream: false,
       }),
     });
-    if (response.status === 429) {
+    if (response.status === 429 || response.status === 503) {
       await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
       continue;
     }
@@ -129,7 +129,8 @@ export async function chatComplete(
   }
 
   if (!response || !response.ok) {
-    throw new Error(`AI service error: ${response?.status ?? "no response"}`);
+    const errBody = await response?.text().catch(() => "");
+    throw new Error(`AI service error: ${response?.status ?? "no response"} ${errBody}`);
   }
 
   const json = await response.json();
