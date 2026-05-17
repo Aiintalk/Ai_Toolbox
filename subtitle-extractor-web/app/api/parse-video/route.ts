@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
       title: videoInfo.title,
       diggCount: videoInfo.diggCount,
       playUrl: videoInfo.playUrl,
+      audioUrl: videoInfo.audioUrl,
+      coverUrl: videoInfo.coverUrl,
+      authorNickname: videoInfo.authorNickname,
       isSubtitled: videoInfo.isSubtitled,
     });
   } catch (err) {

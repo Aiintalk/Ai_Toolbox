@@ -6,6 +6,9 @@ interface VideoInfo {
   awemeId: string;
   isSubtitled: number;
   playUrl: string;
+  audioUrl: string;
+  coverUrl: string;
+  authorNickname: string;
   desc: string;
 }
 
@@ -39,6 +42,13 @@ export async function fetchVideoByShareUrl(rawInput: string): Promise<VideoInfo>
   }
 
   const playUrl = detail.video?.play_addr?.url_list?.[0] ?? "";
+  // Prefer music/audio-only URL, fall back to video play URL
+  const audioUrl =
+    detail.music?.play_url?.url_list?.[0] ??
+    detail.video?.play_addr?.url_list?.[0] ??
+    "";
+  const coverUrl = detail.video?.cover?.url_list?.[0] ?? "";
+  const authorNickname = detail.author?.nickname ?? "";
   const isSubtitled = detail.interaction_stickers?.[0]?.attr?.is_subtitled ?? 0;
 
   return {
@@ -47,6 +57,9 @@ export async function fetchVideoByShareUrl(rawInput: string): Promise<VideoInfo>
     awemeId: detail.aweme_id ?? "",
     isSubtitled,
     playUrl,
+    audioUrl,
+    coverUrl,
+    authorNickname,
     desc: detail.desc ?? "",
   };
 }

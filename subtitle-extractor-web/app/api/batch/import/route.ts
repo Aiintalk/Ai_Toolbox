@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import {
   generateJobId,
+  generateAccessCode,
+  registerAccessCode,
   writeJob,
   updateItem,
   updateJob,
@@ -9,7 +11,6 @@ import {
   type BatchJob,
 } from "@/lib/batch-store";
 import { fetchVideoByShareUrl } from "@/lib/tikhub";
-import { uploadToOSS, getSignedUrl } from "@/lib/aliyun-oss";
 import { submitTranscription, pollTranscription } from "@/lib/aliyun-asr";
 
 const MAX_ROWS = 200;
@@ -44,39 +45,14 @@ async function processItem(jobId: string, item: BatchItem): Promise<void> {
     const videoInfo = await fetchVideoByShareUrl(item.originalUrl);
     updateItem(jobId, item.rowNumber, { title: videoInfo.title });
 
-    if (!videoInfo.playUrl) {
-      throw new Error("未获取到视频播放地址");
+    if (!videoInfo.audioUrl) {
+      throw new Error("未获取到音频地址");
     }
 
-    // Step 2: Download video
-    const videoResponse = await fetch(videoInfo.playUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: "https://www.douyin.com/",
-      },
-    });
+    // Step 2: Submit ASR directly with audio URL (no OSS needed)
+    const taskId = await submitTranscription(videoInfo.audioUrl);
 
-    if (!videoResponse.ok) {
-      throw new Error(`视频下载失败: HTTP ${videoResponse.status}`);
-    }
-
-    const arrayBuffer = await videoResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    if (buffer.length < 1000) {
-      throw new Error("视频文件过小，可能下载失败");
-    }
-
-    // Step 3: Upload to OSS
-    const objectKey = `subtitle-extractor/batch/${Date.now()}_${item.rowNumber}.mp4`;
-    await uploadToOSS(buffer, objectKey, "video/mp4");
-    const signedUrl = getSignedUrl(objectKey, 3600);
-
-    // Step 4: Submit ASR
-    const taskId = await submitTranscription(signedUrl);
-
-    // Step 5: Poll until done
+    // Step 3: Poll until done
     const transcript = await pollUntilDone(taskId);
 
     updateItem(jobId, item.rowNumber, {
@@ -148,6 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     const jobId = generateJobId();
+    const accessCode = generateAccessCode();
     const now = new Date().toISOString();
 
     const items: BatchItem[] = urls.map((url, index) => ({
@@ -161,6 +138,7 @@ export async function POST(request: NextRequest) {
 
     const job: BatchJob = {
       jobId,
+      accessCode,
       status: "processing",
       phase: "初始化",
       total: items.length,
@@ -172,6 +150,7 @@ export async function POST(request: NextRequest) {
     };
 
     writeJob(job);
+    registerAccessCode(accessCode, jobId);
 
     // Fire-and-forget background processing
     // next start runs as a persistent Node.js process, so this works
@@ -180,7 +159,7 @@ export async function POST(request: NextRequest) {
       updateJob(jobId, { status: "failed", phase: "任务异常终止" });
     });
 
-    return NextResponse.json({ jobId, total: items.length });
+    return NextResponse.json({ jobId, accessCode, total: items.length });
   } catch (err) {
     console.error("batch import error:", err);
     return NextResponse.json(
