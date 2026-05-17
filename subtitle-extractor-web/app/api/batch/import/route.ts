@@ -68,26 +68,27 @@ async function processItem(jobId: string, item: BatchItem): Promise<void> {
   }
 }
 
-const SUBMIT_CONCURRENCY = 8; // 并发提交（TikHub + ASR submit）
+const TIKHUB_CONCURRENCY = 5;  // TikHub 解析并发数
+const ASR_CONCURRENCY = 2;     // 阿里云 ASR 提交并发数（试用版2路）
 
 async function processBatchJob(jobId: string, items: BatchItem[]): Promise<void> {
-  // ── 阶段一：并发解析视频 + 提交 ASR ────────────────────────────
-  updateJob(jobId, { phase: "提交转写任务中" });
+  // ── 阶段一：并发解析视频信息（TikHub）────────────────────────────
+  updateJob(jobId, { phase: "解析视频中" });
 
-  const taskMap = new Map<number, string>(); // rowNumber → ASR taskId
+  type ParsedItem = { item: BatchItem; audioUrl: string };
+  const parsed: ParsedItem[] = [];
 
-  const submitQueue = [...items];
-  async function submitWorker() {
-    while (submitQueue.length > 0) {
-      const item = submitQueue.shift();
+  const parseQueue = [...items];
+  async function parseWorker() {
+    while (parseQueue.length > 0) {
+      const item = parseQueue.shift();
       if (!item) break;
       updateItem(jobId, item.rowNumber, { status: "processing" });
       try {
         const videoInfo = await fetchVideoByShareUrl(item.originalUrl);
         updateItem(jobId, item.rowNumber, { title: videoInfo.title });
         if (!videoInfo.audioUrl) throw new Error("未获取到音频地址");
-        const taskId = await submitTranscription(videoInfo.audioUrl);
-        taskMap.set(item.rowNumber, taskId);
+        parsed.push({ item, audioUrl: videoInfo.audioUrl });
       } catch (err) {
         updateItem(jobId, item.rowNumber, {
           status: "failed",
@@ -96,31 +97,52 @@ async function processBatchJob(jobId: string, items: BatchItem[]): Promise<void>
       }
     }
   }
-
-  const submitWorkers = Array.from(
-    { length: Math.min(SUBMIT_CONCURRENCY, items.length) },
-    submitWorker
-  );
-  await Promise.all(submitWorkers);
-
-  // ── 阶段二：所有已提交任务同时轮询（Aliyun 并行处理）────────────
-  updateJob(jobId, { phase: "转写中" });
-
-  const pollTargets = items.filter((item) => taskMap.has(item.rowNumber));
-
   await Promise.all(
-    pollTargets.map(async (item) => {
-      const taskId = taskMap.get(item.rowNumber)!;
+    Array.from({ length: Math.min(TIKHUB_CONCURRENCY, items.length) }, parseWorker)
+  );
+
+  // ── 阶段二：限速提交 ASR（试用版2路并发）────────────────────────
+  updateJob(jobId, { phase: "提交转写任务中" });
+
+  const taskMap = new Map<number, string>(); // rowNumber → ASR taskId
+  const submitQueue = [...parsed];
+  async function submitWorker() {
+    while (submitQueue.length > 0) {
+      const entry = submitQueue.shift();
+      if (!entry) break;
       try {
-        const transcript = await pollUntilDone(taskId);
-        updateItem(jobId, item.rowNumber, { transcript, status: "success", error: "" });
+        const taskId = await submitTranscription(entry.audioUrl);
+        taskMap.set(entry.item.rowNumber, taskId);
       } catch (err) {
-        updateItem(jobId, item.rowNumber, {
+        updateItem(jobId, entry.item.rowNumber, {
           status: "failed",
           error: err instanceof Error ? err.message : String(err),
         });
       }
-    })
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(ASR_CONCURRENCY, parsed.length) }, submitWorker)
+  );
+
+  // ── 阶段三：所有已提交任务同时轮询（阿里云内部排队）────────────
+  updateJob(jobId, { phase: "转写中" });
+
+  await Promise.all(
+    items
+      .filter((item) => taskMap.has(item.rowNumber))
+      .map(async (item) => {
+        const taskId = taskMap.get(item.rowNumber)!;
+        try {
+          const transcript = await pollUntilDone(taskId);
+          updateItem(jobId, item.rowNumber, { transcript, status: "success", error: "" });
+        } catch (err) {
+          updateItem(jobId, item.rowNumber, {
+            status: "failed",
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      })
   );
 
   updateJob(jobId, { status: "completed", phase: "已完成" });
