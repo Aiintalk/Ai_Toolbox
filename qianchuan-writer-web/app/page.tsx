@@ -527,8 +527,13 @@ ${productDesc}
 
       {/* Header */}
       <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">千川脚本仿写助手</h1>
-        <p className="text-sm text-gray-500 mt-1">四步完成千川投流素材仿写 · 爆款开头 + 卖点拼合</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">千川脚本仿写助手</h1>
+            <p className="text-sm text-gray-500 mt-1">四步完成千川投流素材仿写 · 爆款开头 + 卖点拼合</p>
+          </div>
+          <a href="/" className="text-sm text-orange-500 hover:text-orange-600">← 返回首页</a>
+        </div>
       </header>
 
       {/* Step indicator */}

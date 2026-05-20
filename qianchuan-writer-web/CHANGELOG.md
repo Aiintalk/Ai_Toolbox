@@ -1,5 +1,13 @@
 # Changelog — qianchuan-writer-web
 
+## v1.0.1 - 2026-05-20
+
+### Added
+- 页面 header 右侧新增「← 返回首页」按钮，点击跳转到 portal 门户
+
+### Notes
+- 修复类型：UI 优化，新增导航入口
+
 ## v1.0.0 - 2026-04-06
 
 ### Added
