@@ -57,12 +57,14 @@ node --version
 find . -maxdepth 1 \( -name "ssh-*.yaml" -o -name "server-*.yaml" \)
 
 # 7.2. 读取 *.yaml 文件中的 host/user/password 字段，测试登录
+# Mac / Linux：使用 sshpass 自动登录
 sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 $USER@$HOST "echo ok && exit"
+# Windows：无 sshpass，改用以下
+#   ssh $USER@$HOST（手动输入密码，登录后 exit 退出即可）
 
 # 7.3. 登录成功则退出，继续后续流程
 
 # 8. 检查服务器配置 YAML 文件是否已加入 .gitignore
-
 
 ```
 
