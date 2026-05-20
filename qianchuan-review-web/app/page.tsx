@@ -485,6 +485,12 @@ ${hasExcel ? `1. **跑量素材拆解**（消耗高 = 平台认可）
           <h1 className="text-2xl font-bold text-gray-900">千川脚本复盘助手</h1>
           <p className="text-gray-500 mt-1">上传脚本 → 上传投放数据 → AI复盘报告</p>
         </div>
+        <a
+          href="/"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
+        >
+          ← 返回首页
+        </a>
       </div>
 
       {/* Step Indicator */}

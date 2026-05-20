@@ -151,8 +151,13 @@ export default function Home() {
       {toast && <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse">{toast}</div>}
 
       <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">千川爆文合集</h1>
-        <p className="text-sm text-gray-500 mt-1">全网高跑量千川脚本收集与管理</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">千川爆文合集</h1>
+            <p className="text-sm text-gray-500 mt-1">全网高跑量千川脚本收集与管理</p>
+          </div>
+          <a href="/" className="text-sm text-orange-500 hover:text-orange-600">← 返回首页</a>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-4">
