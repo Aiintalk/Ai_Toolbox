@@ -1,5 +1,12 @@
 # Changelog — qianchuan-collection-web
 
+## v1.0.1 - 2026-05-20
+
+### Added
+- 首页新增「← 返回首页」按钮，样式与 qianchuan-writer 统一（橙色文字链接）
+
+---
+
 ## v1.0.0 - 2026-05-12
 
 ### Added
