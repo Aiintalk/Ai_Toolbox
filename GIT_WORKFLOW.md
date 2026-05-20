@@ -52,20 +52,35 @@ gh auth status
 # 6. 检查 Node.js 是否安装
 node --version
 
+# 7. 检查当前目录下是否存在服务器配置 YAML 文件，并测试服务器连通性和账号登录状态
+# 7.1. 在当前目录下查找配置文件
+find . -maxdepth 1 \( -name "ssh-*.yaml" -o -name "server-*.yaml" \)
+
+# 7.2. 读取 *.yaml 文件中的 host/user/password 字段，测试登录
+sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 $USER@$HOST "echo ok && exit"
+
+# 7.3. 登录成功则退出，继续后续流程
+
+# 8. 检查服务器配置 YAML 文件是否已加入 .gitignore
+
+
 ```
 
 #### **判断规则：**
 
 ---
 
-| 检查项                          | 异常情况          | Windows 处理方式                             | Mac 处理方式                           |
-| ------------------------------- | ----------------- | -------------------------------------------- | -------------------------------------- |
-| `git --version` 报错            | Git 未安装        | 下载安装 [git-scm.com](https://git-scm.com/) | `brew install git`                     |
-| `user.name` / `user.email` 为空 | 提交信息无署名    | `git config --global user.name "名字"`       | `git config --global user.name "名字"` |
-| `git remote -v` 地址不是本项目  | 仓库目录错误      | 切换到正确的项目目录                         | 切换到正确的项目目录                   |
-| `gh --version` 报错             | GitHub CLI 未安装 | `winget install GitHub.cli`                  | `brew install gh`                      |
-| `gh auth status` 未登录         | 无法推送和创建 PR | `gh auth login`                              | `gh auth login`                        |
-| `node --version` 报错           | Node.js 未安装    | 下载安装 [nodejs.org](https://nodejs.org/)   | `brew install node`                    |
+| 检查项                                              | 异常情况                     | Windows 处理方式                                        | Mac 处理方式                                            |
+| --------------------------------------------------- | ---------------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| `git --version` 报错                                | Git 未安装                   | 下载安装 [git-scm.com](https://git-scm.com/)            | `brew install git`                                      |
+| `user.name` / `user.email` 为空                     | 提交信息无署名               | `git config --global user.name "名字"`                  | `git config --global user.name "名字"`                  |
+| `git remote -v` 地址不是本项目                      | 仓库目录错误                 | 切换到正确的项目目录                                    | 切换到正确的项目目录                                    |
+| `gh --version` 报错                                 | GitHub CLI 未安装            | `winget install GitHub.cli`                             | `brew install gh`                                       |
+| `gh auth status` 未登录                             | 无法推送和创建 PR            | `gh auth login`                                         | `gh auth login`                                         |
+| `node --version` 报错                               | Node.js 未安装               | 下载安装 [nodejs.org](https://nodejs.org/)              | `brew install node`                                     |
+| 未检测到 `ssh-*.yaml` 或 `server-*.yaml`            | 未配置服务器连接文件         | 提醒下载飞书下载 `ssh-*.yaml`                           | 提醒下载飞书下载 `ssh-*.yaml`                           |
+| 测试服务器连接失败                                  | 服务器不可连接或账号无法登录 | 检查 YAML 中 host / port / username / password 是否正确 | 检查 YAML 中 host / port / username / password 是否正确 |
+| `ssh-*.yaml` 或 `server-*.yaml` 未加入 `.gitignore` | 存在误提交服务器账号密码风险 | 必须先加入 `.gitignore` 后才能继续                      | 必须先加入 `.gitignore` 后才能继续                      |
 
 所有检查项均正常后，才可继续执行第二步。
 
@@ -244,7 +259,119 @@ git checkout -b 分支名称
 
 ------
 
-### 第六步：开发完成后更新文档
+### 第六步：推送服务器测试
+
+功能开发完成后，AI 必须先输出本次改动摘要，并请求开发人员确认是否部署到测试服务器。
+
+在开发人员明确回复“是 / 确认 / 可以 / 需要 / 没问题”等部署确认前，不允许连接服务器、不允许推送文件、不允许重启服务。
+
+#### 6.1 部署前摘要确认
+
+```markdown
+
+✅ 功能已开发完成
+
+当前模块：xxx-web
+本次改动文件：
+- app/xxx.tsx（改动说明）
+- app/api/xxx/route.ts（改动说明）
+
+版本：v1.0.0 → v1.0.1
+测试服务器：120.26.111.136
+
+是否确认部署到测试服务器？
+```
+
+#### 6.2 读取服务器配置 YAML
+
+开发人员确认后，AI 直接连接服务器。
+
+服务器 SSH 配置、账号、认证方式、目标目录，默认读取第一步已确认通过的 YAML 配置。
+
+连接服务器后执行：
+
+```bash
+# 1.检查服务运行状态
+pm2 list
+# 2.将本次开发的文件推送到测试服务器上，服务器文件目录，可以直接覆盖Ai_Toolbox项目下的对应功能文件。
+服务器项目文件：/opt/dev/Ai_Toolbox/xxx-web
+推送参考命令：rsync -avz --exclude='node_modules' --exclude='.next' --exclude='.env.local' \
+  ./xxx-web/ $USER@$HOST:/opt/dev/Ai_Toolbox/xxx-web/
+
+# 3.推送成功后向用户反馈
+
+- 服务运行状态
+- 文件推送位置
+- ⚠️ 需要重新构建并重启服务（npm run build + pm2 restart）才能生效，是否确认？
+
+# 4.用户确认后执行
+cd /opt/dev/Ai_Toolbox/xxx-web
+npm run build
+pm2 restart test-xxx
+curl -s -o /dev/null -w "%{http_code}" http://120.26.111.136/xxx
+
+# 部署完成
+部署结果：✅ 成功
+build 耗时：xx 秒
+PM2 状态：online
+HTTP 验证：200
+测试地址：http://120.26.111.136/xxx
+
+
+```
+
+部署完成，进入第七步。
+
+------
+
+### 第七步：用户测试及功能BUG修复
+
+本步骤等待用户测试反馈，AI 不主动推进。
+
+如用户反馈有问题 / 需要修改 / 需要升级：
+
+1. AI 正常进行开发修复
+
+2. 修复完成后询问用户是否重新部署
+
+```
+✅ 修复已完成
+
+当前模块：xxx-web
+本次改动文件：
+- app/xxx.tsx（改动说明）
+- app/api/xxx/route.ts（改动说明）
+
+是否确认重新部署到测试服务器？
+```
+
+3. 用户回复"是 / 可以 / 确认"后，按第六步 6.2 完整流程执行：
+
+```
+rsync 推送文件 → npm run build → pm2 restart → HTTP 验证
+```
+
+4. 部署完成后输出反馈：
+
+```
+当前模块：xxx-web
+本次改动文件：
+- app/xxx.tsx（改动说明）
+
+部署结果：✅ 成功
+build 耗时：xx 秒
+PM2 状态：online
+HTTP 验证：200
+测试地址：http://120.26.111.136/xxx
+```
+
+5. 回到等待用户测试（循环以上步骤）
+
+直到用户明确反馈测试通过 / 测试完成后，断开服务器连接，进入第八步。
+
+------
+
+### 第八步：开发完成后更新文档
 
 功能开发完成后，AI 主动向开发人员输出改动摘要并请求确认，或开发人员说本次开发完成、开发结束后均需要向开发人员输出改动摘要并请求确认。
 
@@ -279,11 +406,11 @@ git checkout -b 分支名称
 ```
 
 3. 如果本次改动影响了功能说明、接口、使用流程等，同步更新子项目 `README.md`
-4. 更新完成后进入第七步。
+4. 更新完成后进入第九步。
 
 ------
 
-### 第七步：Git 提交
+### 第九步：Git 提交
 
 Git 提交前，AI 必须先让开发人员确认本次改动摘要，确认无误后再执行 add、commit、push。
 
@@ -357,11 +484,11 @@ git commit -m "docs: seeding 更新 CHANGELOG 和 README"
 即将推送到远程并创建 PR，是否继续？
 ```
 
-开发人员确认后进入第八步。
+开发人员确认后进入第十步。
 
 ------
 
-### 第八步：推送远程并发起 PR
+### 第十步：推送远程并发起 PR
 
 **第一步：推送当前分支到远程仓库**
 
@@ -410,7 +537,7 @@ gh pr create \
 
 ---
 
-### 第九步：等待审核
+### 第十一步：等待审核
 
 PR 提交后，AI 进入等待状态，当前任务分支保留，不做任何操作。
 
@@ -437,11 +564,11 @@ push 完成后告知开发人员：
 - PR 已自动更新，请重新审核。
 ```
 
-**等待开发人员回复"PR 已合并、合并完成、已合并、确认合并、完成合并、等语义后"后，才进入第十步。**
+**等待开发人员回复"PR 已合并、合并完成、已合并、确认合并、完成合并、等语义后"后，才进入第十二步。**
 
 ---
 
-### 第十步：PR 合并后清理分支
+### 第十二步：PR 合并后清理分支
 
 收到开发人员"PR 已合并"的确认后，执行以下操作：
 

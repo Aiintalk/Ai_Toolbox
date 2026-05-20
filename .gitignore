@@ -16,3 +16,4 @@ Thumbs.db
 .idea/
 *.tmp
 *.bak
+ssh-*.yaml
