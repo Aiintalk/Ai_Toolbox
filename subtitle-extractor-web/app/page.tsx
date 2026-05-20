@@ -65,6 +65,22 @@ function Spinner() {
   )
 }
 
+// ── Mindmap layout helpers ─────────────────────────────────────────────────
+const MM_LINE_H = 18   // leading-snug line height at text-xs
+const MM_BRANCH_PAD = 12  // py-1.5 × 2 vertical padding
+const MM_CHILD_PAD  = 8   // py-1 × 2 vertical padding
+const MM_BRANCH_CHARS = 10 // chars that fit in maxWidth:140px at text-xs
+const MM_CHILD_CHARS  = 13 // chars that fit in maxWidth:180px at text-xs
+const MM_BRANCH_GAP = 8, MM_CHILD_GAP = 4
+const MM_CURVE_W = 44, MM_CCURVE_W = 28
+
+function mmBranchH(title: string) {
+  return MM_BRANCH_PAD + Math.max(1, Math.ceil(title.length / MM_BRANCH_CHARS)) * MM_LINE_H
+}
+function mmChildH(text: string) {
+  return MM_CHILD_PAD + Math.max(1, Math.ceil(text.length / MM_CHILD_CHARS)) * MM_LINE_H
+}
+
 export default function Home() {
   const [shareText, setShareText] = useState('')
 
@@ -74,6 +90,7 @@ export default function Home() {
   const [viewMode, setViewMode]             = useState<'subtitle' | 'mindmap'>('subtitle')
   const [mindmap, setMindmap]               = useState<MindmapResult | null>(null)
   const [mindmapLoading, setMindmapLoading] = useState(false)
+  const [xmindLoading, setXmindLoading]     = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging]         = useState(false)
@@ -96,12 +113,58 @@ export default function Home() {
   const [error, setError]     = useState('')
   const [toast, setToast]     = useState('')
 
+  // mindmap pan / zoom
+  const [mmZoom, setMmZoom]         = useState(1)
+  const [mmPan, setMmPan]           = useState({ x: 0, y: 0 })
+  const [mmDragging, setMmDragging] = useState(false)
+  const mmContainerRef = useRef<HTMLDivElement>(null)
+  const mmDrag = useRef({ startX: 0, startY: 0, panX: 0, panY: 0 })
+
   const asrPollRef   = useRef<ReturnType<typeof setInterval> | null>(null)
   const batchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const batchCodeRef  = useRef('')
   const batchTotalRef = useRef(0)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
+
+  // Reset zoom + pan when a new mindmap is generated
+  useEffect(() => { if (mindmap) { setMmZoom(1); setMmPan({ x: 0, y: 0 }) } }, [mindmap])
+
+  // Ctrl+Wheel zoom (must be non-passive to preventDefault)
+  useEffect(() => {
+    if (viewMode !== 'mindmap' || !mindmap) return
+    const el = mmContainerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      const d = e.deltaY > 0 ? -0.1 : 0.1
+      setMmZoom(z => Math.max(0.5, Math.min(2, +(z + d).toFixed(1))))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [viewMode, mindmap])
+
+  // Document-level mouse events for drag (prevents losing track when mouse leaves element)
+  useEffect(() => {
+    if (!mmDragging) return
+    const onMove = (e: MouseEvent) => {
+      setMmPan({
+        x: mmDrag.current.panX + (e.clientX - mmDrag.current.startX),
+        y: mmDrag.current.panY + (e.clientY - mmDrag.current.startY),
+      })
+    }
+    const onUp = () => {
+      setMmDragging(false)
+      if (mmContainerRef.current) mmContainerRef.current.style.cursor = 'grab'
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+  }, [mmDragging])
 
   useEffect(() => {
     const saved = loadActiveBatch()
@@ -124,6 +187,18 @@ export default function Home() {
       if (batchPollRef.current) clearInterval(batchPollRef.current)
     }
   }, [])
+
+  // ── Mindmap pan / zoom ────────────────────────────────────────────────────
+  const mmZoomIn  = () => setMmZoom(z => Math.min(2, +(z + 0.1).toFixed(1)))
+  const mmZoomOut = () => setMmZoom(z => Math.max(0.5, +(z - 0.1).toFixed(1)))
+
+  function mmMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    mmDrag.current = { startX: e.clientX, startY: e.clientY, panX: mmPan.x, panY: mmPan.y }
+    setMmDragging(true)
+    if (mmContainerRef.current) mmContainerRef.current.style.cursor = 'grabbing'
+    e.preventDefault()
+  }
 
   // ── Single extraction ──────────────────────────────────────────
 
@@ -205,6 +280,28 @@ export default function Home() {
   function handleCopy() {
     if (!transcript) return
     navigator.clipboard.writeText(transcript).then(() => showToast('已复制到剪贴板'))
+  }
+
+  async function handleExportXmind() {
+    if (!mindmap) return
+    setXmindLoading(true)
+    try {
+      const res = await fetch(`${BASE}/api/mindmap/export`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mindmap),
+      })
+      if (!res.ok) throw new Error('导出失败')
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `mindmap_${Date.now()}.xmind`
+      document.body.appendChild(a); a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '导出 XMind 失败')
+    } finally { setXmindLoading(false) }
   }
 
   // ── Batch import ───────────────────────────────────────────────
@@ -439,53 +536,149 @@ export default function Home() {
                           {mindmapLoading ? '生成中...' : viewMode === 'mindmap' ? '文案' : '思维导图'}
                         </button>
                       )}
+                      {viewMode === 'mindmap' && mindmap && (
+                        <>
+                          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                            <button className="px-2.5 h-7 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer" onClick={mmZoomOut}>−</button>
+                            <span className="text-xs text-gray-500 w-10 text-center select-none">{Math.round(mmZoom * 100)}%</span>
+                            <button className="px-2.5 h-7 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer" onClick={mmZoomIn}>+</button>
+                          </div>
+                          <button
+                            className="px-3 h-7 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+                            onClick={handleExportXmind}
+                            disabled={xmindLoading}
+                          >
+                            {xmindLoading ? '导出中...' : '导出 XMind'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Content box */}
-                  <div className="border border-gray-100 rounded-lg bg-gray-50 overflow-y-auto" style={{ height: 'clamp(260px, 32vh, 300px)' }}>
-                    <div className="p-3 h-full">
-                      {/* Subtitle view */}
-                      {viewMode === 'subtitle' && (
-                        <>
-                          {(asrStatus === 'idle' || asrStatus === 'uploading' || asrStatus === 'processing') && (
-                            <p className="text-sm text-gray-400 text-center py-8">
-                              {asrStatus === 'idle' ? '等待提取...' : asrStatus === 'uploading' ? '正在提交音频转写任务...' : '转写中，请稍候...'}
-                            </p>
-                          )}
-                          {asrStatus === 'error' && <p className="text-sm text-red-500 text-center py-8">转写失败，请重试</p>}
-                          {asrStatus === 'done' && !transcript && <p className="text-sm text-gray-400 text-center py-8">暂无字幕文本</p>}
-                          {asrStatus === 'done' && transcript && (
-                            <pre className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-sans break-words">{transcript}</pre>
-                          )}
-                        </>
-                      )}
+                  <div
+                    className="border border-gray-100 rounded-lg bg-gray-50"
+                    style={{ height: viewMode === 'mindmap' ? 'clamp(320px, 48vh, 520px)' : 'clamp(260px, 32vh, 300px)' }}
+                  >
+                    {/* Subtitle view */}
+                    {viewMode === 'subtitle' && (
+                      <div className="p-3 h-full overflow-y-auto">
+                        {(asrStatus === 'idle' || asrStatus === 'uploading' || asrStatus === 'processing') && (
+                          <p className="text-sm text-gray-400 text-center py-8">
+                            {asrStatus === 'idle' ? '等待提取...' : asrStatus === 'uploading' ? '正在提交音频转写任务...' : '转写中，请稍候...'}
+                          </p>
+                        )}
+                        {asrStatus === 'error' && <p className="text-sm text-red-500 text-center py-8">转写失败，请重试</p>}
+                        {asrStatus === 'done' && !transcript && <p className="text-sm text-gray-400 text-center py-8">暂无字幕文本</p>}
+                        {asrStatus === 'done' && transcript && (
+                          <pre className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-sans break-words">{transcript}</pre>
+                        )}
+                      </div>
+                    )}
 
-                      {/* Mindmap view */}
-                      {viewMode === 'mindmap' && mindmap && (
-                        <div className="grid grid-cols-[minmax(100px,0.7fr)_1fr] gap-4 items-start max-[640px]:grid-cols-1">
-                          <div className="p-3 rounded-xl bg-gray-800 text-white text-sm font-semibold text-center leading-snug">
-                            {mindmap.rootTitle}
-                          </div>
-                          <div className="flex flex-col gap-2.5">
-                            {mindmap.branches.map((branch, i) => (
-                              <div key={i} className="grid grid-cols-[90px_1fr] gap-2 items-start max-[480px]:grid-cols-1">
-                                <div className="px-2 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold leading-tight">
-                                  {branch.title}
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  {branch.children.map((child, j) => (
-                                    <div key={j} className="px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-700 text-xs leading-snug">
-                                      {child}
-                                    </div>
-                                  ))}
-                                </div>
+                    {/* Mindmap view — drag to pan, Ctrl+Scroll or ±buttons to zoom */}
+                    {viewMode === 'mindmap' && mindmap && (() => {
+                      const branches = mindmap.branches
+
+                      let runningTop = 0
+                      const rows = branches.map((b, i) => {
+                        const bh = mmBranchH(b.title)
+                        const childHeights = b.children.map(mmChildH)
+                        const childrenH = childHeights.length > 0
+                          ? childHeights.reduce((s, h, j) => s + h + (j > 0 ? MM_CHILD_GAP : 0), 0)
+                          : 0
+                        const h = Math.max(bh, childrenH)
+                        const top = runningTop
+                        runningTop += h + (i < branches.length - 1 ? MM_BRANCH_GAP : 0)
+                        return { height: h, centerY: top + h / 2, childHeights, childrenH }
+                      })
+
+                      const totalH = runningTop || 30
+                      const midY = totalH / 2
+
+                      return (
+                        <div
+                          ref={mmContainerRef}
+                          className="w-full h-full overflow-hidden select-none"
+                          style={{ cursor: mmDragging ? 'grabbing' : 'grab' }}
+                          onMouseDown={mmMouseDown}
+                        >
+                          <div style={{ display: 'inline-block', padding: 16, transform: `translate(${mmPan.x}px, ${mmPan.y}px) scale(${mmZoom})`, transformOrigin: '0 0' }}>
+                            <div className="inline-flex items-center">
+
+                              {/* 根节点 */}
+                              <div className="shrink-0 px-3 py-2.5 bg-gray-800 text-white rounded-lg text-xs font-bold text-center leading-snug" style={{ width: 100 }}>
+                                {mindmap.rootTitle}
                               </div>
-                            ))}
+
+                              {/* 根 → 分支 贝塞尔连线 */}
+                              <svg width={MM_CURVE_W} height={totalH} style={{ flexShrink: 0, overflow: 'visible', display: 'block' }}>
+                                {rows.map((row, i) => {
+                                  const cy = row.centerY
+                                  const d = `M 0 ${midY} C ${MM_CURVE_W * 0.6} ${midY} ${MM_CURVE_W * 0.4} ${cy} ${MM_CURVE_W} ${cy}`
+                                  return <path key={i} d={d} fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" />
+                                })}
+                              </svg>
+
+                              {/* 分支列表 */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: MM_BRANCH_GAP }}>
+                                {branches.map((branch, i) => {
+                                  const row = rows[i]
+                                  const { childHeights, childrenH } = row
+                                  const cMidY = childrenH / 2
+
+                                  let childTop = 0
+                                  const childCenterYs = childHeights.map(ch => {
+                                    const cy = childTop + ch / 2
+                                    childTop += ch + MM_CHILD_GAP
+                                    return cy
+                                  })
+
+                                  return (
+                                    <div key={i} style={{ height: row.height, display: 'flex', alignItems: 'center' }}>
+
+                                      {/* 分支节点（10字换行） */}
+                                      <div
+                                        className="shrink-0 px-2.5 py-1.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold leading-snug"
+                                        style={{ maxWidth: 140 }}
+                                      >
+                                        {branch.title}
+                                      </div>
+
+                                      {/* 分支 → 子项 贝塞尔连线 */}
+                                      {childHeights.length > 0 && (
+                                        <>
+                                          <svg width={MM_CCURVE_W} height={childrenH} style={{ flexShrink: 0, overflow: 'visible', display: 'block', alignSelf: 'center' }}>
+                                            {childCenterYs.map((cy, j) => {
+                                              const d = `M 0 ${cMidY} C ${MM_CCURVE_W * 0.6} ${cMidY} ${MM_CCURVE_W * 0.4} ${cy} ${MM_CCURVE_W} ${cy}`
+                                              return <path key={j} d={d} fill="none" stroke="#e5e7eb" strokeWidth="1.5" strokeLinecap="round" />
+                                            })}
+                                          </svg>
+
+                                          {/* 子项列表（13字换行） */}
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: MM_CHILD_GAP, alignSelf: 'center' }}>
+                                            {branch.children.map((child, j) => (
+                                              <div
+                                                key={j}
+                                                className="px-2.5 flex items-center border border-gray-200 rounded bg-white text-gray-600 text-xs leading-snug"
+                                                style={{ height: childHeights[j], maxWidth: 180 }}
+                                              >
+                                                {child}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
+                      )
+                    })()}
                   </div>
                 </div>
 
@@ -496,9 +689,24 @@ export default function Home() {
 
         {/* ── 批量提取 ── */}
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <div>
+          <div className="space-y-3">
             <h2 className="text-base font-semibold text-gray-800">批量提取</h2>
-            <p className="text-sm text-gray-500 mt-1">上传包含抖音链接的 Excel，批量解析视频并转字幕，生成可下载结果。A 列为链接，首行标题自动跳过，最多 200 条。</p>
+
+            {/* Excel format */}
+            <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg space-y-1">
+              <p className="text-xs font-medium text-gray-600">Excel 格式说明</p>
+              <ul className="text-xs text-gray-500 space-y-0.5 list-disc list-inside">
+                <li>A 列填写抖音视频分享链接，每行一条</li>
+                <li>首行为标题行时自动跳过（不含链接则忽略）</li>
+                <li>支持 .xlsx / .xls 格式，最多 200 条</li>
+              </ul>
+            </div>
+
+            {/* Access code note */}
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-1">
+              <p className="text-xs font-medium text-blue-700">访问码说明</p>
+              <p className="text-xs text-blue-600">任务提交后会生成一个访问码（格式如 ABCD-1234），可用于刷新页面后在下方「查询历史任务」中恢复进度或重新下载结果。建议复制保存。</p>
+            </div>
           </div>
 
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden"
