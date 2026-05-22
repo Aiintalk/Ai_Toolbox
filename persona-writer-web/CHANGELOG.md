@@ -1,5 +1,12 @@
 # Changelog — persona-writer-web
 
+## v1.1.0 - 2026-05-22
+
+### Added
+- 页面顶部新增「← 返回首页」按钮，点击可跳转至 Portal 门户首页
+
+---
+
 ## v1.0.0 - 2026-04-19
 
 ### Added

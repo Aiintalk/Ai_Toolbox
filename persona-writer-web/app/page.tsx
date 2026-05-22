@@ -569,8 +569,13 @@ ${structureAnalysis}
       )}
 
       <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">人设内容仿写助手</h1>
-        <p className="text-base text-gray-500 mt-1">三步完成人设内容仿写</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">人设内容仿写助手</h1>
+            <p className="text-base text-gray-500 mt-1">三步完成人设内容仿写</p>
+          </div>
+          <a href="/" className="text-sm text-orange-500 hover:text-orange-600">← 返回首页</a>
+        </div>
       </header>
 
       {/* 步骤条 */}
