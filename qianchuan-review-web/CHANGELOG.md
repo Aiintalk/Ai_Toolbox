@@ -1,5 +1,12 @@
 # Changelog — qianchuan-review-web
 
+## v1.0.1 - 2026-05-24
+
+### Changed
+- 返回首页按钮样式统一为橙色文字链接，与 qianchuan-writer、qianchuan-collection 保持一致
+
+---
+
 ## v1.0.0 - 2026-05-12
 
 ### Added
