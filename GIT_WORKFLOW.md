@@ -310,9 +310,9 @@ sshpass -p "$PASS" rsync -avz -e "ssh -p $PORT -o StrictHostKeyChecking=no" \
   ./xxx-web/ $USER@$HOST:/opt/dev/Ai_Toolbox/xxx-web/
 
 # 6.2.3 推送成功后向用户反馈：
-# - 服务运行状态
+# - 服务运行状态（正在运行、没有运行、无此服务）
 # - 文件推送位置
-# - ⚠️ 需要重新构建并重启服务（npm run build + pm2 restart）才能生效，是否确认？
+# - ⚠️ 需要重新构建并重启此服务才能生效，是否确认？
 ```
 
 #### 6.3 构建并重启（用户确认后执行）
