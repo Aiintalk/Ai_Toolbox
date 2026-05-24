@@ -247,8 +247,13 @@ export default function Home() {
       )}
 
       <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">素材库维护</h1>
-        <p className="text-sm text-gray-500 mt-1">管理达人档案与参考素材，上传越多 AI 仿写越精准</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">素材库维护</h1>
+            <p className="text-sm text-gray-500 mt-1">管理达人档案与参考素材，上传越多 AI 仿写越精准</p>
+          </div>
+          <a href="/" className="text-sm text-orange-500 hover:text-orange-600">← 返回首页</a>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-4">
