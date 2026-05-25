@@ -456,11 +456,16 @@ export default function Home() {
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
         <div className="max-w-3xl mx-auto px-6 py-10">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-4xl">🎯</span>
-            <h1 className="text-3xl font-bold tracking-tight">产品卖点提取器</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-4xl">🎯</span>
+                <h1 className="text-3xl font-bold tracking-tight">产品卖点提取器</h1>
+              </div>
+              <p className="text-orange-100 text-base">上传产品Brief + 达人文案，AI帮你提炼最炸裂的三大卖点</p>
+            </div>
+            <a href="/" className="text-sm text-orange-100 hover:text-white transition">← 返回首页</a>
           </div>
-          <p className="text-orange-100 text-base">上传产品Brief + 达人文案，AI帮你提炼最炸裂的三大卖点</p>
         </div>
       </div>
 
