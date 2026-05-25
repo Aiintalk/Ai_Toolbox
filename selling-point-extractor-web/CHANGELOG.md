@@ -1,5 +1,10 @@
 # Changelog — selling-point-extractor-web
 
+## v1.2.0 - 2026-05-26
+
+### Added
+- 页面顶部 Header 新增"← 返回首页"按钮，点击可跳转至 Portal 门户首页
+
 ## v1.1.0 - 2026-05-16
 
 ### Added
