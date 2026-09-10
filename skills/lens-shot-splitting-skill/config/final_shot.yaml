@@ -1,0 +1,61 @@
+model:
+  name: qwen3.8-flash
+  version: qwen3.8-flash
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: QWEN_API_KEY
+  timeout_seconds: 120
+  max_retries: 3
+  temperature: 0.0
+  max_tokens: 3000
+  enable_thinking: false
+
+sampling:
+  short_candidate_threshold_ms: 2000
+  short_safe_offset_ms: 200
+  interval_ms: 667
+  max_samples_per_candidate: 16
+  speech_interval_ms: 100
+  max_speech_samples_per_candidate: 24
+  mouth_motion_threshold: 0.0175
+  width: 768
+  quality: 3
+
+speech:
+  enabled: true
+  model_name: qwen3-asr-flash
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: QWEN_API_KEY
+  timeout_seconds: 120
+  max_retries: 2
+  language: zh
+  speech_gap_tolerance_ms: 1200
+
+# One-pass final-shot understanding, taxonomy classification and quality score.
+classification:
+  enabled: true
+  model_name: qwen3.8-flash
+  model_version: qwen3.8-flash
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: QWEN_API_KEY
+  # A stalled visual request should be recorded and retried in a later batch,
+  # rather than holding the whole library indefinitely.
+  timeout_seconds: 75
+  max_retries: 1
+  temperature: 0.0
+  max_tokens: 2200
+  enable_thinking: false
+  prompt_path: config/shot_classification_v2.md
+  taxonomy_version: beauty_shot_v3
+  prompt_version: beauty_shot_prompt_v7_category_quality
+  use_visual_samples: true
+
+clip_retries: 2
+split_rule_version: semantic_split_v2_zh
+
+clip:
+  video_codec: libx264
+  audio_codec: aac
+  preset: medium
+  crf: 18
+  audio_bitrate: 192k
+  keep_audio: true

@@ -1,0 +1,3 @@
+interface:
+  display_name: "镜头拆分（仅切片）离线技能"
+  short_description: "仅执行镜头切片，不做分类和评分"

@@ -1,0 +1,26 @@
+detector: adaptive
+threshold: 3.0
+min_scene_len: 0.6s
+min_content_val: 15.0
+window_width: 2
+weights:
+  delta_hue: 1.0
+  delta_sat: 1.0
+  delta_lum: 1.0
+  delta_edges: 0.0
+frame_skip: 0
+downscale: 1
+auto_downscale: false
+
+thumbnail:
+  safe_offset_ms: 200
+  width: 640
+  quality: 3
+
+clip:
+  video_codec: libx264
+  audio_codec: aac
+  preset: medium
+  crf: 18
+  audio_bitrate: 192k
+  keep_audio: true

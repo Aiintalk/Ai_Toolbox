@@ -1,0 +1,21 @@
+# Local Python environment
+backend/.venv/
+
+# Local secrets
+backend/.env
+backend/.env.*
+split_only.config.env.local
+
+# Local media, generated results, and logs
+storage/raw_videos/*
+storage/media/*
+storage/logs/*
+!storage/raw_videos/.gitkeep
+!storage/media/.gitkeep
+!storage/logs/.gitkeep
+
+# Runtime caches and editor files
+__pycache__/
+*.py[cod]
+*.swp
+.DS_Store
