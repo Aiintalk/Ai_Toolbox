@@ -4,20 +4,6 @@
 
 ---
 
-## Codex Skill：参考视频成片制作
-
-根据参考短片或长视频及修改要求，逐镜头拆解、锁定人物和动作、生成提示词，并通过火山方舟 Seedance 2.0（默认 720p）制作变化镜头，最后质检和导出 MP4。
-
-- [直接下载完整 Skill ZIP](https://raw.githubusercontent.com/Aiintalk/Ai_Toolbox/main/downloads/reference-video-production.skill.zip)
-- [查看 Skill 源码](skills/reference-video-production/SKILL.md)
-- [方舟与虚拟素材库配置说明](skills/reference-video-production/references/ark-setup-and-usage.md)
-
-安装：下载并解压 ZIP，将整个 `reference-video-production` 文件夹放到 `~/.codex/skills/`（Windows：`%USERPROFILE%\.codex\skills\`），重新打开 Codex。在 Skill 目录运行 `python3 scripts/setup.py`（Windows 用 `python`），再运行 `python3 scripts/run.py configure --all`，在本机隐藏输入中填写自己的方舟 API Key、Access Key ID 和 Secret Access Key。不要把 Key 贴进聊天或提交到仓库。使用时可说“用 `$reference-video-production` 分析这段参考视频”。
-
-安装包包含工作流、方舟 API 客户端、虚拟人像素材库操作和 FFmpeg 执行器；无需安装 Hypit Skill。账号仍须开通所需模型和素材库权限；本地文件入库需要自己的北京 TOS 存储桶。仅有一个视频生成 API Key 不能管理素材库。
-
----
-
 ## 14 个工具一览
 
 | 工具 | URL 路径 | 端口 | 本地源码目录 | 用途 |
