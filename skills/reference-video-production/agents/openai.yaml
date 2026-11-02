@@ -1,0 +1,4 @@
+interface:
+  display_name: "参考视频成片制作"
+  short_description: "默认 Seedance 2.0 720p，完成参考片拆解、生成、质检和导出"
+  default_prompt: "用 $reference-video-production 按我的参考视频和修改要求，以 Seedance 2.0、720p 完成逐镜头制作、质检并导出成片。"
